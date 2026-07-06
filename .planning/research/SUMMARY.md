@@ -85,7 +85,7 @@ The architecture unifies wallet/keystore CLI, blockchain indexer, and anomaly de
 - Risk: Legitimate aggressive trading (velocity spike, round-trip loss, new counterparty) triggers auto-sweep, liquidating a position.
 - Prevention: Multi-signal AND-gate for auto-sweep trigger; expand fixture library beyond 2 golden cases before enabling `--armed`.
 
-**Secondary:** Pitfall 4 (double-spend via retry), Pitfall 9 (LLM egress breach), Pitfall 19 (supply-chain compromise — direct precedent: the Dec 2024 `@solana/web3.js` attack, phished maintainer creds, ~$190K in ~5 hours).
+**Secondary:** Pitfall 4 (double-spend via retry), Pitfall 9 (LLM egress breach), Pitfall 19 (supply-chain compromise — direct precedent: the Dec 2024 solana-web3.js npm attack, phished maintainer creds, ~$190K in ~5 hours).
 
 **Confidence: HIGH for Solana mechanics; MEDIUM for Bastion-specific scoring/LLM risks.**
 
