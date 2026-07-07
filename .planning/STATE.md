@@ -21,19 +21,19 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-06)
+See: .planning/PROJECT.md (updated 2026-07-07)
 
 **Core value:** A compromised trading session is a dead end with a small, pre-decided balance — the vault behind it is never drained.
-**Current focus:** Phase 02 — Encrypted Keystore + Key-Safety Invariants
+**Current focus:** Phase 3 — Fund-Moving on Devnet (Funder + Sweeper)
 
 ## Current Position
 
 Phase: 3 — Fund-Moving on Devnet (Funder + Sweeper)
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Phase 02 complete and verified — ready to plan Phase 3 (autonomous run paused at --to 2)
 Last activity: 2026-07-07 — Phase 02 complete, transitioned to Phase 3
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 25% (2/8 phases)
 
 ## Performance Metrics
 

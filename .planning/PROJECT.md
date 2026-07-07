@@ -23,16 +23,23 @@ Bastion is a non-custodial, local-first CLI that provides **blast-radius contain
 
 <!-- Shipped and confirmed valuable. -->
 
-(None yet — ship to validate)
+- ✓ Config + JSON-RPC/WebSocket transport with externalized safety rails — Phase 1 (CLI-05, CLI-06)
+- ✓ Generate a fresh Solana keypair per session (rotation on loss/time threshold deferred to Phase 7) — Phase 2 (SESS-01)
+- ✓ Encrypt session keys at rest (scrypt n=2¹⁷ → Fernet); keystore files owner-only 0600 on POSIX (Windows perms limitation documented/tested) — Phase 2 (SESS-04)
+- ✓ Load a session keypair by pubkey with a passphrase; wrong passphrase fails closed (typed error, never a partial/garbage key) — Phase 2 (SESS-05)
+- ✓ No plaintext key ever written to disk or logs — ciphertext-only keystore, redacted `SessionKeypair` repr, capfd/caplog no-secret-leak regression — Phase 2 (SEC-01)
+- ✓ Refuse to run when keystore dir resolves under a cloud-sync path (default-refuse + explicit opt-in override) — Phase 2 (SEC-04)
+- ✓ Passphrase confirmed on create, never echoed or logged — Phase 2 (SEC-05)
+- ✓ Vault/session split enforced structurally — isolated `vault.py` import boundary, proven by an AST import-graph test (precondition for SEC-02/SEC-03) — Phase 2
 
 ### Active
 
 <!-- Current scope. Building toward these. All are hypotheses until shipped and validated. -->
 
 **Session & key management**
-- [ ] Generate a fresh keypair per session (opt-in rotation on a loss/time threshold, not per-fill)
+- [~] Generate a fresh keypair per session — generation shipped (Phase 2); opt-in rotation on a loss/time threshold deferred to Phase 7
 - [ ] Fund a session wallet from a vault with a hard SOL cap (refuse if cap > MAX_SESSION_CAP)
-- [ ] Encrypt session keys at rest (scrypt → Fernet); keystore files owner-only (0600)
+- [x] Encrypt session keys at rest (scrypt → Fernet); keystore files owner-only (0600) — Phase 2
 - [ ] Sweep remaining SOL back to vault on manual session end; retire the keystore
 
 **Monitoring & detection**
@@ -122,4 +129,4 @@ This document evolves at phase transitions and milestone boundaries.
 5. Update Context with current state
 
 ---
-*Last updated: 2026-07-06 after initialization*
+*Last updated: 2026-07-07 after Phase 2 (Encrypted Keystore + Key-Safety Invariants)*
