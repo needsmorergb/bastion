@@ -1,0 +1,24 @@
+# Local tooling state (machine-local, never shared)
+.maestro/
+
+# Secrets & keystores — MUST never be committed (see SEC-01, DIST-02)
+.env
+*.env
+!.env.example
+keystore/
+*.keystore
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
