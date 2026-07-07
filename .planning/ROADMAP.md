@@ -37,12 +37,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. The WebSocket client reconnects and re-subscribes after a forced silent drop, detected via an active heartbeat (not only `onclose`/`onerror`).
   5. The `getSignaturesForAddress` helper paginates via `before`/`until` cursor across a >1000-signature mocked stream without truncating.
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Wave 1: greenfield scaffolding (pyproject/hatchling/uv lock, .gitignore, .env.example, package skeleton, typed RPC errors) + shared test harness (respx factory + local WS server with silent-drop hook) + package-legitimacy gate
+- [x] 01-01-PLAN.md — Wave 1: greenfield scaffolding (pyproject/hatchling/uv lock, .gitignore, .env.example, package skeleton, typed RPC errors) + shared test harness (respx factory + local WS server with silent-drop hook) + package-legitimacy gate
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -230,7 +230,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation — Config + RPC Client | 0/4 | Not started | - |
+| 1. Foundation — Config + RPC Client | 1/4 | In Progress|  |
 | 2. Encrypted Keystore + Key-Safety Invariants | 0/4 | Not started | - |
 | 3. Fund-Moving on Devnet (Funder + Sweeper) | 0/4 | Not started | - |
 | 4. Persistence — SQLite Store + Audit Log | 0/3 | Not started | - |

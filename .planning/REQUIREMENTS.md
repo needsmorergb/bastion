@@ -64,8 +64,8 @@ Requirements for the initial release (personal-use MVP through mainnet shakeout 
 - [ ] **CLI-02**: User can run `end --wallet <pubkey> [--retire]` to sweep and close a session
 - [ ] **CLI-03**: User can run `list` and `status --wallet <pubkey>` to inspect sessions
 - [ ] **CLI-04**: User can run `monitor [--armed]` to watch active sessions
-- [ ] **CLI-05**: Configuration is read from env (`SOLANA_RPC`, `SOLANA_WS`, `VAULT_SECRET`, `VAULT_PUBKEY`, `KEYSTORE_DIR`, `KEYSTORE_PASSPHRASE`, `TELEGRAM_*`, `PUSHOVER_*`) with a `getpass` fallback for the passphrase
-- [ ] **CLI-06**: Safety rails are configurable (`MAX_SESSION_CAP`, `FEE_RESERVE_LAMPORTS`, scoring thresholds)
+- [x] **CLI-05**: Configuration is read from env (`SOLANA_RPC`, `SOLANA_WS`, `VAULT_SECRET`, `VAULT_PUBKEY`, `KEYSTORE_DIR`, `KEYSTORE_PASSPHRASE`, `TELEGRAM_*`, `PUSHOVER_*`) with a `getpass` fallback for the passphrase
+- [x] **CLI-06**: Safety rails are configurable (`MAX_SESSION_CAP`, `FEE_RESERVE_LAMPORTS`, scoring thresholds)
 
 ### Distribution Hardening
 
@@ -157,8 +157,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CLI-02 | Phase 7 | Pending |
 | CLI-03 | Phase 7 | Pending |
 | CLI-04 | Phase 7 | Pending |
-| CLI-05 | Phase 1 | Pending |
-| CLI-06 | Phase 1 | Pending |
+| CLI-05 | Phase 1 | Complete |
+| CLI-06 | Phase 1 | Complete |
 | DIST-01 | Phase 8 | Pending |
 | DIST-02 | Phase 8 | Pending |
 | DIST-03 | Phase 8 | Pending |
@@ -166,11 +166,13 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DIST-05 | Phase 8 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 42 total
 - Mapped to phases: 42 ✓ (100% coverage; each requirement to exactly one phase, no orphans, no duplicates)
 - Unmapped: 0
 
 **Per-phase requirement counts:**
+
 - Phase 1 (Foundation — Config + RPC): 2 — CLI-05, CLI-06
 - Phase 2 (Encrypted Keystore + Key-Safety): 6 — SESS-01, SESS-04, SESS-05, SEC-01, SEC-04, SEC-05
 - Phase 3 (Fund-Moving on Devnet): 5 — SESS-02, SESS-03, SESS-06, SESS-07, SEC-02

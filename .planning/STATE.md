@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 1
-current_phase_name: Foundation — Config + RPC Client
+current_phase: 01
+current_phase_name: foundation-config-rpc-client
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-07-07T14:58:04.345Z"
-last_activity: 2026-07-06
-last_activity_desc: Roadmap created; 42/42 v1 requirements mapped across 8 phases
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-07-07T15:51:53.673Z"
+last_activity: 2026-07-07
+last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 8
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 4
+  completed_plans: 1
   percent: 0
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** A compromised trading session is a dead end with a small, pre-decided balance — the vault behind it is never drained.
-**Current focus:** Phase 1 — Foundation (Config + RPC Client)
+**Current focus:** Phase 01 — foundation-config-rpc-client
 
 ## Current Position
 
-Phase: 1 of 8 (Foundation — Config + RPC Client)
-Plan: 0 of 4 in current phase
-Status: Ready to execute (planned + verified)
-Last activity: 2026-07-07 — Phase 1 planned: 4 plans / 2 waves, plan-checker PASSED, coverage gates 8/8 decisions + CLI-05/CLI-06
+Phase: 01 (foundation-config-rpc-client) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-07-07 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01 P01 | 5min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,9 @@ Recent decisions affecting current work:
 - [Roadmap]: Strictly layered, gated build order — keystore proven before funds move; devnet before mainnet; scoring proven against golden fixtures before armed auto-sweep is wired.
 - [Roadmap]: LLM-egress boundary (SEC-03) ships in the same phase (5) that introduces scoring, not deferred to distribution hardening.
 - [Roadmap]: MON-04 (idempotent ingestion) delivered at the persistence layer (Phase 4) because dedupe-on-signature is a schema-level decision.
+- [Phase 01-01]: Flat bastion/ layout (not src/) confirmed per CLAUDE.md and plan constraint
+- [Phase 01-01]: uv add / uv add --dev used exactly as researched, producing hash-pinned uv.lock in one pass
+- [Phase 01-01]: WS silent-drop implemented as check-before-recv loop so force_silent_drop() blocks the handler forever without a close frame, distinct from clean_close()
 
 ### Pending Todos
 
@@ -86,6 +90,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07 (resumed, autonomous)
-Stopped at: Phase 1 PLANNED & verified (4 plans, 2 waves). Paused at phase boundary before execute — recommend /clear then /gsd-execute-phase 01. Note: plan 01-01 has a blocking package-legitimacy checkpoint (autonomous: false).
-Resume file: .planning/phases/01-foundation-config-rpc-client/01-01-PLAN.md
+Last session: 2026-07-07T15:51:53.666Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None
