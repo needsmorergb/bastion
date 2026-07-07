@@ -171,3 +171,67 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 > Profile not yet configured. Run `/gsd-profile-user` to generate your developer profile.
 > This section is managed by `generate-claude-profile` -- do not edit manually.
 <!-- GSD:profile-end -->
+
+<!-- token-control:start (hand-maintained; not managed by any GSD generator) -->
+
+## Token & Context Control
+
+> These sections are hand-maintained and sit outside all GSD-managed marker blocks
+> so they are never overwritten. Their purpose is to keep sessions bounded and
+> conserve Claude Max usage.
+
+### Low-token GSD mode
+
+When the user says **"GSD low-token mode"** or **"low-token mode"**, follow these rules for the rest of the session (until told otherwise):
+
+- Do NOT scan the whole repository.
+- Read only files directly related to the stated task.
+- Before reading more than 5 files, pause and explain why more files are needed.
+- Prefer targeted edits over broad refactors.
+- Do not refactor unrelated code.
+- Do not run full test suites unless explicitly requested.
+- Prefer targeted tests, type checks, or lint checks scoped to the changed area.
+- Avoid extended/deep thinking unless the task is blocked, architectural, or the user explicitly asks for deeper reasoning.
+- Keep responses concise.
+- Do not paste large code blocks unless necessary.
+- After completing the task, summarize only:
+  - files changed
+  - what changed
+  - how it was verified
+  - remaining risk
+- Recommend `/clear` when switching to a different task.
+- Recommend `/compact` when context is getting large but the current task is not finished.
+
+### Repo reading policy
+
+Applies to every session (stricter under low-token mode):
+
+- Never inspect the whole repo by default.
+- Start with the smallest likely file set.
+- Prefer reading `package.json` / `pyproject.toml`, `README.md`, the relevant feature folder, and files directly named by the user.
+- Avoid reading generated/build folders unless required.
+- Avoid `node_modules`, `dist`, `build`, `.next`, `coverage`, logs, lockfiles, screenshots, videos, and large binary assets unless directly relevant.
+- Ask before broadening scope beyond the immediate task area.
+
+### Session hygiene
+
+- One Claude Code session should focus on one feature, bug, or bounded refactor.
+- When a task is complete, suggest `/clear` before moving to a new, unrelated task.
+- When context is getting large but work must continue, suggest `/compact` with a concise handoff summary.
+- Do not carry stale context across unrelated work.
+
+### Model and usage awareness
+
+- Use Sonnet for normal implementation, bug fixes, and refactors.
+- Reserve Opus or higher-effort reasoning for difficult architecture or debugging, and only when requested.
+- Suggest `/model` if the current model seems excessive for the task.
+- Suggest `/usage` and `/context` periodically during long sessions.
+
+### Default behavior
+
+- When the user simply says **"Use GSD,"** default to a bounded, efficient workflow (lightest GSD entry point that fits the task).
+- When the user says **"Use GSD low-token mode,"** enforce the stricter low-token rules above.
+- When the task is ambiguous, make the smallest reasonable assumption and begin with a narrow file search.
+- Do not ask unnecessary questions when the next step is obvious.
+
+<!-- token-control:end -->
