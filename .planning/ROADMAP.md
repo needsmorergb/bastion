@@ -33,12 +33,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. The RPC client retries and backs off on injected 429 responses without crashing (mocked-RPC test passes).
   4. The WebSocket client reconnects and re-subscribes after a forced silent drop, detected via an active heartbeat (not only `onclose`/`onerror`).
   5. The `getSignaturesForAddress` helper paginates via `before`/`until` cursor across a >1000-signature mocked stream without truncating.
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: config.py — env loading, safety rails (MAX_SESSION_CAP/FEE_RESERVE/thresholds), getpass fallback, hash-pinned lockfile habit from setup
-- [ ] 01-02: rpc/client.py — JSON-RPC POST, 429 retry/backoff (priority-aware), getSignaturesForAddress pagination, getFeeForMessage/getLatestBlockhash/send_raw/status helpers
-- [ ] 01-03: rpc/ws.py — logsSubscribe/accountSubscribe, active heartbeat, auto-reconnect + resubscribe on silent drop
+- [ ] 01-01-PLAN.md — Wave 1: greenfield scaffolding (pyproject/hatchling/uv lock, .gitignore, .env.example, package skeleton, typed RPC errors) + shared test harness (respx factory + local WS server with silent-drop hook) + package-legitimacy gate
+- [ ] 01-02-PLAN.md — Wave 2: config.py — env loading + process-env precedence, getpass passphrase fallback, config-driven safety rails (MAX_SESSION_CAP/FEE_RESERVE/thresholds), secret-safe repr
+- [ ] 01-03-PLAN.md — Wave 2: rpc/client.py — JSON-RPC POST, 429/5xx retry+backoff to typed error, getSignaturesForAddress pagination past 1000, getFeeForMessage(confirmed)/getLatestBlockhash/send_raw + safe sync wrappers
+- [ ] 01-04-PLAN.md — Wave 2: rpc/ws.py — logsSubscribe/accountSubscribe, active heartbeat catching silent drops, auto-reconnect + resubscribe + backfill-needed signal
+**Note**: Roadmap proposed 3 plans; split to 4 because this is a greenfield repo — a dedicated Wave 1 scaffolding/test-harness plan (RESEARCH ## Validation Architecture "Wave 0 Gaps") must precede the three feature modules, which then run in parallel in Wave 2.
 **UI hint**: no
 
 ### Phase 2: Encrypted Keystore + Key-Safety Invariants
@@ -183,7 +185,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation — Config + RPC Client | 0/3 | Not started | - |
+| 1. Foundation — Config + RPC Client | 0/4 | Not started | - |
 | 2. Encrypted Keystore + Key-Safety Invariants | 0/4 | Not started | - |
 | 3. Fund-Moving on Devnet (Funder + Sweeper) | 0/4 | Not started | - |
 | 4. Persistence — SQLite Store + Audit Log | 0/3 | Not started | - |
