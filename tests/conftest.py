@@ -84,11 +84,20 @@ class WsTestHarness:
         try:
             while True:
                 if self._silent_drop.is_set():
-                    # Block forever: never read again, never write again,
-                    # never return (so the library never sends a close
-                    # frame). Only fixture teardown (server shutdown) ends
-                    # this connection.
-                    await asyncio.Event().wait()
+                    # Stop reading/writing entirely and never send a close
+                    # frame ourselves - the app-level silent-drop
+                    # simulation. Wait on the connection's OWN lifecycle
+                    # (not a bare, unrelated asyncio.Event()) so this
+                    # handler still terminates once the connection
+                    # actually closes via any path - a peer-initiated
+                    # close (e.g. a client-side heartbeat force-closing
+                    # its own socket) or fixture teardown
+                    # (`Server.close()`, which waits for every handler
+                    # task to finish and would hang forever if this were
+                    # blocked on something the connection's own closing
+                    # could never resolve).
+                    await connection.wait_closed()
+                    return
                 message = await connection.recv()
                 self.received.append(message)
         except websockets.ConnectionClosed:
@@ -118,11 +127,23 @@ class WsTestHarness:
 @pytest_asyncio.fixture
 async def ws_test_server() -> AsyncIterator[tuple[str, WsTestHarness]]:
     """Yields (uri, WsTestHarness) for a local websockets.asyncio server
-    bound to an ephemeral localhost port. Uses the modern
+    bound to an ephemeral loopback port. Uses the modern
     `websockets.asyncio.server` API, never `websockets.legacy`.
+
+    Binds explicitly to `127.0.0.1` rather than `"localhost"`: `serve()`
+    given the hostname "localhost" opens TWO separate dual-stack sockets
+    (`127.0.0.1` and `::1`), each with its OWN ephemeral port. A client
+    connecting to `ws://localhost:<port-of-sockets[0]>` resolves
+    "localhost" to both addresses and (per RFC 6724 address ordering)
+    tries the IPv6 `::1` candidate first - which is listening on a
+    *different* port - before falling back to the correct IPv4 address.
+    On Windows this fallback is not instant (observed ~2s stall per
+    connection attempt), which starves any test relying on a fast,
+    deterministic connect. Binding to a single explicit loopback address
+    removes the ambiguity entirely.
     """
     harness = WsTestHarness()
-    async with ws_serve(harness._handle_connection, "localhost", 0) as server:
+    async with ws_serve(harness._handle_connection, "127.0.0.1", 0) as server:
         port = server.sockets[0].getsockname()[1]
-        uri = f"ws://localhost:{port}"
+        uri = f"ws://127.0.0.1:{port}"
         yield uri, harness
