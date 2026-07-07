@@ -19,6 +19,9 @@ venv/
 build/
 dist/
 
+# Local SQLite store (sessions/transactions/alerts/baselines)
+*.db
+
 # OS / editor
 .DS_Store
 Thumbs.db
