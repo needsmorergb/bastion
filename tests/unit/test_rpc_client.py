@@ -85,6 +85,39 @@ async def test_retry_budget_exhaustion_raises_typed_error(rpc_harness, monkeypat
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("retry_after", ["0", "-5"])
+async def test_zero_or_negative_retry_after_cannot_stall_budget(
+    rpc_harness, monkeypatch, retry_after
+):
+    # H-1 (T-01-07): a hostile endpoint answering every request with
+    # `429 + Retry-After: 0` (or negative) must NOT loop forever — the wait
+    # floor keeps `elapsed` advancing so the budget still trips with the typed
+    # error. Bound the attempt count to catch a regression that reintroduces
+    # the infinite loop instead of hanging the test suite.
+    client, router = rpc_harness
+    route = router.post(RPC_TEST_BASE_URL).mock(
+        return_value=httpx.Response(429, headers={"Retry-After": retry_after})
+    )
+
+    slept = 0.0
+
+    async def _accumulating_sleep(seconds: float) -> None:
+        nonlocal slept
+        assert seconds > 0, "retry wait must be floored to a positive minimum"
+        slept += seconds
+
+    monkeypatch.setattr(asyncio, "sleep", _accumulating_sleep)
+
+    rpc = RpcClient(client)
+    with pytest.raises(RpcRateLimitError):
+        await rpc.call("getBalance", ["SomePubkey111..."])
+
+    # Budget is 30s, floor is 0.05s → at most ~600 attempts before it trips.
+    assert route.call_count < 1000
+    assert slept > 0
+
+
+@pytest.mark.asyncio
 async def test_get_signatures_paginates_past_1000(rpc_harness):
     client, router = rpc_harness
     page1 = [{"signature": f"sig{i}"} for i in range(1000)]

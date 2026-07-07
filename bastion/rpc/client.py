@@ -36,6 +36,12 @@ _DEFAULT_MAX_WAIT_S = 30.0
 # sendTransaction rate is far more constrained (~1/sec) than routine polling.
 _SEND_TX_MAX_WAIT_S = 10.0
 _RETRYABLE_STATUS_CODES = (429, 502, 503, 504)
+# Floor every retry wait to a small positive minimum (H-1, T-01-07 hardening).
+# A hostile/misbehaving endpoint answering 429 with `Retry-After: 0` (or a
+# negative value) would otherwise leave `wait == 0`, so `elapsed` never advances,
+# the budget guard never trips, and the loop spins forever. Flooring guarantees
+# `elapsed` always grows so the `max_wait_s` budget is always eventually reached.
+_MIN_RETRY_WAIT_S = 0.05
 
 
 class RpcClient:
@@ -82,6 +88,9 @@ class RpcClient:
             else:
                 base = min(2**attempt, max_wait_s)
                 wait = base * (0.75 + random.random() * 0.5)  # +-25% jitter
+
+            # H-1: never let a zero/negative Retry-After stall (or spin) the loop.
+            wait = max(wait, _MIN_RETRY_WAIT_S)
 
             if elapsed + wait > max_wait_s:
                 raise RpcRateLimitError(

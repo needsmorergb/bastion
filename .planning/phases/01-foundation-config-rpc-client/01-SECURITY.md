@@ -81,10 +81,13 @@ rationale that holds; recorded here to close the disposition.
   `Retry-After`, and the no-header exponential path, both bounded and the
   latter tested): the bounded-cap + typed-error mechanism is present and the
   cited test passes. It sits on the same trust basis as accepted T-01-09 /
-  T-01-13 (the endpoint is the user's own trusted RPC). Optional future
-  hardening: floor `wait` to a small positive minimum, or also bound on an
-  attempt counter, so a zero/negative `Retry-After` cannot stall the budget.
-  Tracked as a hardening item, **not** an open threat.
+  T-01-13 (the endpoint is the user's own trusted RPC).
+  **RESOLVED:** `wait` is now floored to `_MIN_RETRY_WAIT_S = 0.05`
+  (`client.py:39`, applied at `client.py:88-89`) so a zero/negative
+  `Retry-After` always advances `elapsed` and the `max_wait_s` budget still
+  trips with `RpcRateLimitError`. Regression:
+  `test_rpc_client.py::test_zero_or_negative_retry_after_cannot_stall_budget`
+  (parametrized `0` / `-5`).
 
 ## Unregistered Flags
 
