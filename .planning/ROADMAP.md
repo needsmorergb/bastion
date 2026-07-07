@@ -13,7 +13,7 @@ Bastion is built bottom-up as a strictly layered, gated stack: each phase delive
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation — Config + RPC Client** - Env config, safety rails, and a mockable JSON-RPC + WebSocket transport both trust zones depend on
+- [x] **Phase 1: Foundation — Config + RPC Client** - Env config, safety rails, and a mockable JSON-RPC + WebSocket transport both trust zones depend on (completed 2026-07-07)
 - [ ] **Phase 2: Encrypted Keystore + Key-Safety Invariants** - Session keys encrypted at rest (scrypt→Fernet, 0600), never leaked, cloud-sync refused — before any funds move
 - [ ] **Phase 3: Fund-Moving on Devnet (Funder + Sweeper)** - Capped vault→session funding and exact-zero session→vault sweep, validated end-to-end on devnet
 - [ ] **Phase 4: Persistence — SQLite Store + Audit Log** - WAL-mode idempotent store (sessions/transactions/alerts/baselines/cursors) plus append-only JSONL audit trail
@@ -37,7 +37,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. The WebSocket client reconnects and re-subscribes after a forced silent drop, detected via an active heartbeat (not only `onclose`/`onerror`).
   5. The `getSignaturesForAddress` helper paginates via `before`/`until` cursor across a >1000-signature mocked stream without truncating.
 
-**Plans**: 1/4 plans executed
+**Plans**: 4/4 plans complete
 
 Plans:
 **Wave 1**
@@ -46,9 +46,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Wave 2: config.py — env loading + process-env precedence, getpass passphrase fallback, config-driven safety rails (MAX_SESSION_CAP/FEE_RESERVE/thresholds), secret-safe repr
-- [ ] 01-03-PLAN.md — Wave 2: rpc/client.py — JSON-RPC POST, 429/5xx retry+backoff to typed error, getSignaturesForAddress pagination past 1000, getFeeForMessage(confirmed)/getLatestBlockhash/send_raw + safe sync wrappers
-- [ ] 01-04-PLAN.md — Wave 2: rpc/ws.py — logsSubscribe/accountSubscribe, active heartbeat catching silent drops, auto-reconnect + resubscribe + backfill-needed signal
+- [x] 01-02-PLAN.md — Wave 2: config.py — env loading + process-env precedence, getpass passphrase fallback, config-driven safety rails (MAX_SESSION_CAP/FEE_RESERVE/thresholds), secret-safe repr
+- [x] 01-03-PLAN.md — Wave 2: rpc/client.py — JSON-RPC POST, 429/5xx retry+backoff to typed error, getSignaturesForAddress pagination past 1000, getFeeForMessage(confirmed)/getLatestBlockhash/send_raw + safe sync wrappers
+- [x] 01-04-PLAN.md — Wave 2: rpc/ws.py — logsSubscribe/accountSubscribe, active heartbeat catching silent drops, auto-reconnect + resubscribe + backfill-needed signal
 
 **Note**: Roadmap proposed 3 plans; split to 4 because this is a greenfield repo — a dedicated Wave 1 scaffolding/test-harness plan (RESEARCH ## Validation Architecture "Wave 0 Gaps") must precede the three feature modules, which then run in parallel in Wave 2.
 **UI hint**: no
@@ -230,7 +230,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation — Config + RPC Client | 1/4 | In Progress|  |
+| 1. Foundation — Config + RPC Client | 4/4 | Complete   | 2026-07-07 |
 | 2. Encrypted Keystore + Key-Safety Invariants | 0/4 | Not started | - |
 | 3. Fund-Moving on Devnet (Funder + Sweeper) | 0/4 | Not started | - |
 | 4. Persistence — SQLite Store + Audit Log | 0/3 | Not started | - |
