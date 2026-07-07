@@ -101,15 +101,38 @@ def _atomic_write_json(path: str, data: bytes) -> None:
     accounts (02-RESEARCH.md Pitfall 1) -- documented, not silently assumed.
     ``os.replace`` is atomic same-volume on both POSIX and Windows, so a
     crash mid-write never leaves a truncated file at the final path.
+
+    ``os.fsync(fd)`` is called before ``os.close`` so the written bytes are
+    durable on disk before the atomic rename (IN-02) -- otherwise a power
+    loss immediately after ``os.replace`` could leave an empty/zero-length
+    keystore behind despite the rename itself being atomic. A missing
+    ``keystore_dir`` raises a typed ``KeystoreConfigError`` instead of a raw
+    ``FileNotFoundError`` (IN-04). On any failure in the write/chmod/replace
+    sequence, the orphaned temp file is unlinked before the exception
+    propagates (IN-01) rather than left behind in ``keystore_dir``.
     """
     directory = os.path.dirname(path) or "."
-    fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".tmp-", suffix=".json")
     try:
-        os.write(fd, data)
-    finally:
-        os.close(fd)
-    os.chmod(tmp_path, 0o600)  # best-effort on Windows, real on POSIX (Pitfall 1)
-    os.replace(tmp_path, path)
+        fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".tmp-", suffix=".json")
+    except FileNotFoundError as exc:
+        raise KeystoreConfigError(
+            f"Keystore directory does not exist: {directory!r}"
+        ) from exc
+
+    try:
+        try:
+            os.write(fd, data)
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        os.chmod(tmp_path, 0o600)  # best-effort on Windows, real on POSIX (Pitfall 1)
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def save(

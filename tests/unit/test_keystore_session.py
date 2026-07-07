@@ -238,3 +238,51 @@ def test_retire_rejects_absolute_path_pubkey_before_deleting_file(tmp_path):
         retire(absolute_pubkey, str(tmp_path))
 
     assert victim.exists()
+
+
+# --- IN-01 / IN-02: temp file cleanup + fsync durability on write ---
+
+
+def test_atomic_write_cleans_up_temp_file_on_replace_failure(tmp_path, monkeypatch):
+    from bastion.keystore import session as session_module
+
+    def _boom(*args, **kwargs):
+        raise OSError("simulated replace failure")
+
+    monkeypatch.setattr(session_module.os, "replace", _boom)
+
+    target = tmp_path / "abc.json"
+    with pytest.raises(OSError):
+        session_module._atomic_write_json(str(target), b"{}")
+
+    leftover = [p.name for p in tmp_path.iterdir() if p.name.startswith(".tmp-")]
+    assert leftover == []
+
+
+def test_atomic_write_calls_fsync_before_replace(tmp_path, monkeypatch):
+    from bastion.keystore import session as session_module
+
+    calls = []
+    real_fsync = session_module.os.fsync
+
+    def _spy_fsync(fd):
+        calls.append(fd)
+        return real_fsync(fd)
+
+    monkeypatch.setattr(session_module.os, "fsync", _spy_fsync)
+
+    target = tmp_path / "abc.json"
+    session_module._atomic_write_json(str(target), b"{}")
+
+    assert calls
+
+
+# --- IN-04: save() into a non-existent keystore dir fails typed, not raw ---
+
+
+def test_save_into_nonexistent_dir_raises_config_error(tmp_path):
+    session = generate()
+    missing_dir = tmp_path / "does-not-exist"
+
+    with pytest.raises(KeystoreConfigError):
+        save(session, str(missing_dir), PASSPHRASE)
