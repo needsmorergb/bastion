@@ -24,6 +24,7 @@ Contract:
 from __future__ import annotations
 
 import base64
+import binascii
 import os
 
 from cryptography.fernet import Fernet, InvalidToken
@@ -125,15 +126,25 @@ def decrypt_secret(passphrase: str, blob: dict) -> bytes:
     lets Fernet's own HMAC authentication decide validity: a wrong
     passphrase or a tampered ciphertext raises
     ``KeystoreWrongPassphraseError`` — never a partial or garbage value.
+
+    A truncated/hand-edited blob (missing field, non-base64 salt) raises a
+    typed ``KeystoreConfigError`` (WR-03) rather than a raw ``KeyError`` or
+    ``binascii.Error`` -- the corrupt-file contract now holds for the parse
+    step, not just the ciphertext-auth step.
     """
-    n, r, p = blob["n"], blob["r"], blob["p"]
+    try:
+        n, r, p = blob["n"], blob["r"], blob["p"]
+        salt = base64.urlsafe_b64decode(blob["salt"])
+        token = blob["ciphertext"].encode("ascii")
+    except (KeyError, TypeError, ValueError, binascii.Error) as exc:
+        raise KeystoreConfigError("Malformed or corrupted keystore file.") from exc
+
     _validate_kdf_params(n, r, p)
 
-    salt = base64.urlsafe_b64decode(blob["salt"])
     key = _derive_fernet_key(passphrase, salt, n, r, p)
 
     try:
-        return Fernet(key).decrypt(blob["ciphertext"].encode("ascii"))
+        return Fernet(key).decrypt(token)
     except InvalidToken as exc:
         raise KeystoreWrongPassphraseError(
             "Incorrect passphrase or corrupted keystore file."

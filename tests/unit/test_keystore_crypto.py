@@ -134,6 +134,26 @@ def test_param_validation_rejects_zero_p():
         decrypt_secret(PASSPHRASE, blob)
 
 
+def test_decrypt_rejects_blob_missing_required_field():
+    """A truncated/hand-edited keystore file missing a required field must
+    raise a typed KeystoreConfigError, not a raw KeyError (WR-03)."""
+    blob = encrypt_secret(PASSPHRASE, _payload())
+    del blob["ciphertext"]
+
+    with pytest.raises(KeystoreConfigError):
+        decrypt_secret(PASSPHRASE, blob)
+
+
+def test_decrypt_rejects_malformed_salt_encoding():
+    """A salt that is not valid base64 must raise a typed KeystoreConfigError,
+    not a raw binascii.Error (WR-03)."""
+    blob = encrypt_secret(PASSPHRASE, _payload())
+    blob["salt"] = "abc"  # invalid base64 padding -> binascii.Error
+
+    with pytest.raises(KeystoreConfigError):
+        decrypt_secret(PASSPHRASE, blob)
+
+
 def test_param_validation_rejects_oversized_n():
     """A tampered ``n`` that is a power of two but far exceeds the ceiling
     must be rejected with a typed error BEFORE any scrypt derivation is
