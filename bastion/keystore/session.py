@@ -25,9 +25,11 @@ import tempfile
 from dataclasses import dataclass, field
 
 from solders.keypair import Keypair
+from solders.pubkey import Pubkey
 
 from bastion.keystore import crypto
 from bastion.keystore.cloudsync import check_keystore_dir
+from bastion.keystore.errors import KeystoreConfigError
 
 
 @dataclass
@@ -69,6 +71,26 @@ def generate() -> SessionKeypair:
     """
     kp = Keypair()
     return SessionKeypair(pubkey=str(kp.pubkey()), _secret=bytearray(bytes(kp)))
+
+
+def _safe_pubkey(pubkey: str) -> str:
+    """Validate ``pubkey`` before it is ever used to build a filesystem path.
+
+    Rejects anything that does not decode as a canonical base58 Ed25519
+    pubkey (``solders.pubkey.Pubkey.from_string`` already rejects ``/``,
+    ``\\``, and traversal segments since they are not valid base58
+    characters), and additionally rejects path separators / ``.``/``..``
+    explicitly as defense in depth so this guard does not silently depend on
+    base58's alphabet alone. Raises ``KeystoreConfigError`` (never a raw
+    ``ValueError``) so callers get the module's typed fail-loud contract.
+    """
+    try:
+        Pubkey.from_string(pubkey)
+    except (ValueError, TypeError) as exc:
+        raise KeystoreConfigError("Invalid session pubkey.") from exc
+    if "/" in pubkey or "\\" in pubkey or os.sep in pubkey or pubkey in (".", ".."):
+        raise KeystoreConfigError("Invalid session pubkey.")
+    return pubkey
 
 
 def _atomic_write_json(path: str, data: bytes) -> None:
@@ -122,8 +144,11 @@ def load(pubkey: str, keystore_dir: str, passphrase: str) -> SessionKeypair:
     ``Keypair.from_bytes`` provides a second fail-closed validation layer
     (raises on a corrupted 64-byte blob rather than silently accepting it).
     The decrypted secret is returned fresh on every call -- never cached in
-    a module-level global.
+    a module-level global. ``pubkey`` is validated (WR-01) before it is used
+    to build a filesystem path, so a path-traversal or absolute-path value
+    is rejected with ``KeystoreConfigError`` before any file is opened.
     """
+    pubkey = _safe_pubkey(pubkey)
     path = os.path.join(keystore_dir, f"{pubkey}.json")
     with open(path, encoding="utf-8") as f:
         blob = json.load(f)
@@ -140,12 +165,16 @@ def retire(session_or_pubkey: SessionKeypair | str, keystore_dir: str) -> None:
     Accepts either a ``SessionKeypair`` (its ``zeroize()`` is called) or a
     bare pubkey string (no in-memory secret to zeroize). Tolerates an
     already-absent file (best-effort delete, not a hard requirement that the
-    file still exists).
+    file still exists). ``pubkey`` is validated (WR-01) before it is used to
+    build a filesystem path, so a path-traversal or absolute-path value is
+    rejected with ``KeystoreConfigError`` before any file is deleted.
     """
     if isinstance(session_or_pubkey, SessionKeypair):
         pubkey = session_or_pubkey.pubkey
     else:
         pubkey = session_or_pubkey
+
+    pubkey = _safe_pubkey(pubkey)
 
     path = os.path.join(keystore_dir, f"{pubkey}.json")
     try:

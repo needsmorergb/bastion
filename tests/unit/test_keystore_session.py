@@ -178,3 +178,63 @@ def test_load_returned_keypair_is_valid_solders_keypair(tmp_path):
 
     restored = Keypair.from_bytes(bytes(loaded._secret))
     assert str(restored.pubkey()) == loaded.pubkey
+
+
+# --- WR-01: path traversal via unvalidated pubkey (load/retire) ---
+
+
+def test_load_rejects_pubkey_with_forward_slash(tmp_path):
+    with pytest.raises(KeystoreConfigError):
+        load("abc/def", str(tmp_path), PASSPHRASE)
+
+
+def test_load_rejects_path_traversal_pubkey_before_reading_file(tmp_path):
+    keystore_dir = tmp_path / "keystore"
+    keystore_dir.mkdir()
+    victim = tmp_path / "victim.json"
+    victim.write_text('{"secret": "leak-me-not"}', encoding="utf-8")
+
+    with pytest.raises(KeystoreConfigError):
+        load("../victim", str(keystore_dir), PASSPHRASE)
+
+    # The traversal must be rejected before the file is ever opened.
+    assert victim.read_text(encoding="utf-8") == '{"secret": "leak-me-not"}'
+
+
+def test_load_rejects_absolute_path_pubkey_before_reading_file(tmp_path):
+    victim = tmp_path.parent / "absolute-load-target.json"
+    victim.write_text('{"secret": "leak-me-not"}', encoding="utf-8")
+    absolute_pubkey = str(tmp_path.parent / "absolute-load-target")
+
+    with pytest.raises(KeystoreConfigError):
+        load(absolute_pubkey, str(tmp_path), PASSPHRASE)
+
+    assert victim.read_text(encoding="utf-8") == '{"secret": "leak-me-not"}'
+
+
+def test_retire_rejects_pubkey_with_forward_slash(tmp_path):
+    with pytest.raises(KeystoreConfigError):
+        retire("abc/def", str(tmp_path))
+
+
+def test_retire_rejects_path_traversal_pubkey_before_deleting_file(tmp_path):
+    keystore_dir = tmp_path / "keystore"
+    keystore_dir.mkdir()
+    victim = tmp_path / "victim-retire.json"
+    victim.write_text("do-not-delete", encoding="utf-8")
+
+    with pytest.raises(KeystoreConfigError):
+        retire("../victim-retire", str(keystore_dir))
+
+    assert victim.exists()
+
+
+def test_retire_rejects_absolute_path_pubkey_before_deleting_file(tmp_path):
+    victim = tmp_path.parent / "absolute-retire-target.json"
+    victim.write_text("do-not-delete", encoding="utf-8")
+    absolute_pubkey = str(tmp_path.parent / "absolute-retire-target")
+
+    with pytest.raises(KeystoreConfigError):
+        retire(absolute_pubkey, str(tmp_path))
+
+    assert victim.exists()
