@@ -2,10 +2,13 @@
 .maestro/
 
 # Secrets & keystores — MUST never be committed (see SEC-01, DIST-02)
+# Anchored to repo root so it never shadows the bastion/keystore/ source
+# package (crypto/session/error modules) — only a root-level runtime
+# keystore data directory is meant to be excluded here.
 .env
 *.env
 !.env.example
-keystore/
+/keystore/
 *.keystore
 *.key
 
