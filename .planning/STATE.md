@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: Encrypted Keystore + Key-Safety Invariants
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-07-07T20:38:55.003Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-07-07T20:47:25.721Z"
 last_activity: 2026-07-07
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 9
-  completed_plans: 6
+  completed_plans: 7
   percent: 13
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 ## Current Position
 
 Phase: 02 (Encrypted Keystore + Key-Safety Invariants) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-07-07 — Phase 02 execution started
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 5min | 3 tasks | 11 files |
 | Phase 02 P01 | 6min | 2 tasks | 5 files |
 | Phase 02 P02 | 5min | 2 tasks | 2 files |
+| Phase 02 P03 | 8min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,8 @@ Recent decisions affecting current work:
 - [Phase 02]: Auto-approved package-legitimacy checkpoint for cryptography/solders under AUTO_MODE with documented PyPI/GitHub evidence (pyca/cryptography, kevinheavey/solders); SUS flag was a recency-heuristic false positive
 - [Phase 02]: Anchored .gitignore keystore/ pattern to /keystore/ (repo root) to stop it shadowing the bastion/keystore/ source package
 - [Phase 02]: Split single crypto.py implementation into two atomic feat commits (core primitives, then KDF param validation) to preserve per-task TDD RED/GREEN gate fidelity
+- [Phase 02-03]: Split single-file plan into 3 atomic TDD commits (test-only RED, feat GREEN for load_vault, feat for AST isolation test) to preserve genuine per-task RED/GREEN gate fidelity
+- [Phase 02-03]: Changed AST isolation assertion from equality to subset (importing_files <= ALLOWED_IMPORTERS) since vault.py doesn't self-import and nothing imports it yet -- preserves the fail-on-violation requirement while being satisfiable today
 
 ### Pending Todos
 
@@ -95,6 +98,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T20:38:54.985Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-07-07T20:47:07.879Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None
