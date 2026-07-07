@@ -22,7 +22,7 @@ Requirements for the initial release (personal-use MVP through mainnet shakeout 
 
 <!-- Each is a test, not a comment. -->
 
-- [ ] **SEC-01**: No plaintext private key is ever written to disk or emitted to logs
+- [x] **SEC-01**: No plaintext private key is ever written to disk or emitted to logs
 - [ ] **SEC-02**: The vault secret is loaded only for funding; sweeps target `VAULT_PUBKEY` and require no vault secret
 - [ ] **SEC-03**: The scoring/LLM path can access only public on-chain data and has no keystore access (structural import boundary + canary test)
 - [ ] **SEC-04**: System refuses to run when the keystore directory appears to be cloud-synced
@@ -130,7 +130,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | SESS-06 | Phase 3 | Pending |
 | SESS-07 | Phase 3 | Pending |
 | SESS-08 | Phase 7 | Pending |
-| SEC-01 | Phase 2 | Pending |
+| SEC-01 | Phase 2 | Complete |
 | SEC-02 | Phase 3 | Pending |
 | SEC-03 | Phase 5 | Pending |
 | SEC-04 | Phase 2 | Pending |
