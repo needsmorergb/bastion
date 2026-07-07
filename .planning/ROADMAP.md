@@ -66,15 +66,24 @@ Plans:
   4. Startup refuses to run when KEYSTORE_DIR resolves under a cloud-sync path (Dropbox/OneDrive/iCloud/Google Drive), verified with a synthetic path.
   5. Passphrase entry is confirmed on create, never echoed to the terminal, and never logged.
 
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
+**Wave 1**
 
-- [ ] 02-01: keystore/crypto.py — scrypt→Fernet primitives, versioned KDF params, redacted `__repr__`/`__str__` on secret-wrapping types
-- [ ] 02-02: keystore/session.py — generate/save(0600)/load/retire; wrong-passphrase-fails-closed
-- [ ] 02-03: keystore/vault.py — load_vault() isolated so only funder can import it (import-graph fact)
-- [ ] 02-04: cloud-sync refusal check + passphrase confirm/no-echo flow + no-secret-in-logs regression test
+- [ ] 02-01-PLAN.md — Setup: package-legitimacy checkpoint + `uv add cryptography solders` (hash-pinned) + `keystore/` package + typed `KeystoreError` hierarchy
 
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 02-02-PLAN.md — `keystore/crypto.py`: scrypt→Fernet primitives, versioned ciphertext-only JSON format, fail-closed decrypt, KDF-param validation
+- [ ] 02-03-PLAN.md — `keystore/vault.py`: isolated `load_vault()` + AST import-isolation test (structural precondition for SEC-02/SEC-03)
+- [ ] 02-04-PLAN.md — `keystore/cloudsync.py` + `keystore/passphrase.py`: cloud-sync refuse-by-default/opt-in-warn + empty-dir guard + confirm-on-create no-echo passphrase
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 02-05-PLAN.md — `keystore/session.py`: `SessionKeypair` (redacted) + generate/save(atomic 0600)/load(fail-closed)/retire + full-flow no-secret-in-logs regression
+
+**Note**: Roadmap proposed 4 plans; split to 5 because a Wave 1 setup plan (deps + package + error contract, gated by a one-time package-legitimacy checkpoint) must precede the feature modules, and the cloud-sync/passphrase rails are separated from `session.py` so crypto (02-02), vault (02-03), and the rails (02-04) run in parallel in Wave 2 with no shared-file conflicts; `session.py` integrates them in Wave 3.
 **UI hint**: no
 
 ### Phase 3: Fund-Moving on Devnet (Funder + Sweeper)
@@ -231,7 +240,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation — Config + RPC Client | 4/4 | Complete    | 2026-07-07 |
-| 2. Encrypted Keystore + Key-Safety Invariants | 0/4 | Not started | - |
+| 2. Encrypted Keystore + Key-Safety Invariants | 0/5 | Not started | - |
 | 3. Fund-Moving on Devnet (Funder + Sweeper) | 0/4 | Not started | - |
 | 4. Persistence — SQLite Store + Audit Log | 0/3 | Not started | - |
 | 5. Scoring Engine + LLM-Egress Boundary | 0/5 | Not started | - |
