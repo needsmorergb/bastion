@@ -134,3 +134,11 @@ None - no external service configuration required.
 ---
 *Phase: 02-encrypted-keystore-key-safety-invariants*
 *Completed: 2026-07-07*
+
+## Self-Check: PASSED
+
+- FOUND: bastion/keystore/__init__.py
+- FOUND: bastion/keystore/errors.py
+- FOUND: .planning/phases/02-encrypted-keystore-key-safety-invariants/02-01-SUMMARY.md
+- FOUND: f2f8d2f (Task 2 commit)
+- FOUND: 0c7e61b (SUMMARY commit)
