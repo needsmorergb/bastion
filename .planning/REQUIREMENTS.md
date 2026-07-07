@@ -122,13 +122,64 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| _(populated by roadmap)_ | — | Pending |
+| SESS-01 | Phase 2 | Pending |
+| SESS-02 | Phase 3 | Pending |
+| SESS-03 | Phase 3 | Pending |
+| SESS-04 | Phase 2 | Pending |
+| SESS-05 | Phase 2 | Pending |
+| SESS-06 | Phase 3 | Pending |
+| SESS-07 | Phase 3 | Pending |
+| SESS-08 | Phase 7 | Pending |
+| SEC-01 | Phase 2 | Pending |
+| SEC-02 | Phase 3 | Pending |
+| SEC-03 | Phase 5 | Pending |
+| SEC-04 | Phase 2 | Pending |
+| SEC-05 | Phase 2 | Pending |
+| MON-01 | Phase 6 | Pending |
+| MON-02 | Phase 6 | Pending |
+| MON-03 | Phase 6 | Pending |
+| MON-04 | Phase 4 | Pending |
+| MON-05 | Phase 6 | Pending |
+| MON-06 | Phase 6 | Pending |
+| SCOR-01 | Phase 5 | Pending |
+| SCOR-02 | Phase 5 | Pending |
+| SCOR-03 | Phase 5 | Pending |
+| SCOR-04 | Phase 5 | Pending |
+| SCOR-05 | Phase 5 | Pending |
+| SCOR-06 | Phase 5 | Pending |
+| ALRT-01 | Phase 6 | Pending |
+| ALRT-02 | Phase 6 | Pending |
+| ALRT-03 | Phase 6 | Pending |
+| ALRT-04 | Phase 6 | Pending |
+| AUD-01 | Phase 4 | Pending |
+| AUD-02 | Phase 4 | Pending |
+| CLI-01 | Phase 7 | Pending |
+| CLI-02 | Phase 7 | Pending |
+| CLI-03 | Phase 7 | Pending |
+| CLI-04 | Phase 7 | Pending |
+| CLI-05 | Phase 1 | Pending |
+| CLI-06 | Phase 1 | Pending |
+| DIST-01 | Phase 8 | Pending |
+| DIST-02 | Phase 8 | Pending |
+| DIST-03 | Phase 8 | Pending |
+| DIST-04 | Phase 8 | Pending |
+| DIST-05 | Phase 8 | Pending |
 
 **Coverage:**
 - v1 requirements: 42 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 42 ⚠️ (resolved when roadmap is created)
+- Mapped to phases: 42 ✓ (100% coverage; each requirement to exactly one phase, no orphans, no duplicates)
+- Unmapped: 0
+
+**Per-phase requirement counts:**
+- Phase 1 (Foundation — Config + RPC): 2 — CLI-05, CLI-06
+- Phase 2 (Encrypted Keystore + Key-Safety): 6 — SESS-01, SESS-04, SESS-05, SEC-01, SEC-04, SEC-05
+- Phase 3 (Fund-Moving on Devnet): 5 — SESS-02, SESS-03, SESS-06, SESS-07, SEC-02
+- Phase 4 (Persistence — Store + Audit): 3 — AUD-01, AUD-02, MON-04
+- Phase 5 (Scoring + LLM-Egress Boundary): 7 — SCOR-01, SCOR-02, SCOR-03, SCOR-04, SCOR-05, SCOR-06, SEC-03
+- Phase 6 (Monitor + Alerting + Armed Sweep): 9 — MON-01, MON-02, MON-03, MON-05, MON-06, ALRT-01, ALRT-02, ALRT-03, ALRT-04
+- Phase 7 (CLI + Mainnet Shakeout): 5 — CLI-01, CLI-02, CLI-03, CLI-04, SESS-08
+- Phase 8 (Distribution Hardening): 5 — DIST-01, DIST-02, DIST-03, DIST-04, DIST-05
 
 ---
 *Requirements defined: 2026-07-06*
-*Last updated: 2026-07-06 after initial definition*
+*Last updated: 2026-07-06 after roadmap creation (traceability populated)*
