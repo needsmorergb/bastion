@@ -9,10 +9,10 @@ Requirements for the initial release (personal-use MVP through mainnet shakeout 
 
 ### Session & Keys
 
-- [ ] **SESS-01**: User can generate a fresh Solana keypair for a new session
+- [x] **SESS-01**: User can generate a fresh Solana keypair for a new session
 - [ ] **SESS-02**: User can fund a session wallet from the vault with a specified SOL cap
 - [ ] **SESS-03**: System refuses to fund when the requested cap exceeds `MAX_SESSION_CAP`
-- [ ] **SESS-04**: Session keys are encrypted at rest (scrypt → Fernet) and keystore files are owner-only (0600)
+- [x] **SESS-04**: Session keys are encrypted at rest (scrypt → Fernet) and keystore files are owner-only (0600)
 - [ ] **SESS-05**: User can load a session keypair by pubkey with a passphrase; a wrong passphrase fails closed
 - [ ] **SESS-06**: User can sweep remaining SOL back to the vault on manual session end
 - [ ] **SESS-07**: User can retire (remove) a session keystore after it has been swept
@@ -122,10 +122,10 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SESS-01 | Phase 2 | Pending |
+| SESS-01 | Phase 2 | Complete |
 | SESS-02 | Phase 3 | Pending |
 | SESS-03 | Phase 3 | Pending |
-| SESS-04 | Phase 2 | Pending |
+| SESS-04 | Phase 2 | Complete |
 | SESS-05 | Phase 2 | Pending |
 | SESS-06 | Phase 3 | Pending |
 | SESS-07 | Phase 3 | Pending |

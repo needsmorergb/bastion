@@ -66,12 +66,12 @@ Plans:
   4. Startup refuses to run when KEYSTORE_DIR resolves under a cloud-sync path (Dropbox/OneDrive/iCloud/Google Drive), verified with a synthetic path.
   5. Passphrase entry is confirmed on create, never echoed to the terminal, and never logged.
 
-**Plans**: 5 plans
+**Plans**: 1/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Setup: package-legitimacy checkpoint + `uv add cryptography solders` (hash-pinned) + `keystore/` package + typed `KeystoreError` hierarchy
+- [x] 02-01-PLAN.md — Setup: package-legitimacy checkpoint + `uv add cryptography solders` (hash-pinned) + `keystore/` package + typed `KeystoreError` hierarchy
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -240,7 +240,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation — Config + RPC Client | 4/4 | Complete    | 2026-07-07 |
-| 2. Encrypted Keystore + Key-Safety Invariants | 0/5 | Not started | - |
+| 2. Encrypted Keystore + Key-Safety Invariants | 1/5 | In Progress|  |
 | 3. Fund-Moving on Devnet (Funder + Sweeper) | 0/4 | Not started | - |
 | 4. Persistence — SQLite Store + Audit Log | 0/3 | Not started | - |
 | 5. Scoring Engine + LLM-Egress Boundary | 0/5 | Not started | - |
