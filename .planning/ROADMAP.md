@@ -66,7 +66,7 @@ Plans:
   4. Startup refuses to run when KEYSTORE_DIR resolves under a cloud-sync path (Dropbox/OneDrive/iCloud/Google Drive), verified with a synthetic path.
   5. Passphrase entry is confirmed on create, never echoed to the terminal, and never logged.
 
-**Plans**: 3/5 plans executed
+**Plans**: 4/5 plans executed
 
 Plans:
 **Wave 1**
@@ -77,7 +77,7 @@ Plans:
 
 - [x] 02-02-PLAN.md — `keystore/crypto.py`: scrypt→Fernet primitives, versioned ciphertext-only JSON format, fail-closed decrypt, KDF-param validation
 - [x] 02-03-PLAN.md — `keystore/vault.py`: isolated `load_vault()` + AST import-isolation test (structural precondition for SEC-02/SEC-03)
-- [ ] 02-04-PLAN.md — `keystore/cloudsync.py` + `keystore/passphrase.py`: cloud-sync refuse-by-default/opt-in-warn + empty-dir guard + confirm-on-create no-echo passphrase
+- [x] 02-04-PLAN.md — `keystore/cloudsync.py` + `keystore/passphrase.py`: cloud-sync refuse-by-default/opt-in-warn + empty-dir guard + confirm-on-create no-echo passphrase
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -240,7 +240,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation — Config + RPC Client | 4/4 | Complete    | 2026-07-07 |
-| 2. Encrypted Keystore + Key-Safety Invariants | 3/5 | In Progress|  |
+| 2. Encrypted Keystore + Key-Safety Invariants | 4/5 | In Progress|  |
 | 3. Fund-Moving on Devnet (Funder + Sweeper) | 0/4 | Not started | - |
 | 4. Persistence — SQLite Store + Audit Log | 0/3 | Not started | - |
 | 5. Scoring Engine + LLM-Egress Boundary | 0/5 | Not started | - |

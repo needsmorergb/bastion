@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: Encrypted Keystore + Key-Safety Invariants
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-07-07T20:47:25.721Z"
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-07-07T20:53:26.012Z"
 last_activity: 2026-07-07
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
   percent: 13
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 ## Current Position
 
 Phase: 02 (Encrypted Keystore + Key-Safety Invariants) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-07-07 — Phase 02 execution started
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P01 | 6min | 2 tasks | 5 files |
 | Phase 02 P02 | 5min | 2 tasks | 2 files |
 | Phase 02 P03 | 8min | 2 tasks | 2 files |
+| Phase 02 P04 | 12min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - [Phase 02]: Split single crypto.py implementation into two atomic feat commits (core primitives, then KDF param validation) to preserve per-task TDD RED/GREEN gate fidelity
 - [Phase 02-03]: Split single-file plan into 3 atomic TDD commits (test-only RED, feat GREEN for load_vault, feat for AST isolation test) to preserve genuine per-task RED/GREEN gate fidelity
 - [Phase 02-03]: Changed AST isolation assertion from equality to subset (importing_files <= ALLOWED_IMPORTERS) since vault.py doesn't self-import and nothing imports it yet -- preserves the fail-on-violation requirement while being satisfiable today
+- [Phase 02-04]: Two-commit-per-task TDD split (test RED, then feat GREEN) preserved for both tasks; empty-path guard ordered before cloud-sync detection so KeystoreConfigError is unconditional on allow_cloud_sync
+- [Phase 02-04]: Segment-substring matching (not exact default install paths) used for cloud-sync detection per RESEARCH guidance; allow_cloud_sync remains a function parameter only, CLI/Config wiring deferred to Phase 7
 
 ### Pending Todos
 
@@ -98,6 +101,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T20:47:07.879Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-07-07T20:53:26.004Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
