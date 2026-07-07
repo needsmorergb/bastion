@@ -2,7 +2,7 @@
 phase: 2
 slug: encrypted-keystore-key-safety-invariants
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-07-07
 ---
@@ -82,6 +82,6 @@ created: 2026-07-07
 - [ ] Wave 0 covers all MISSING references
 - [ ] No watch-mode flags
 - [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
