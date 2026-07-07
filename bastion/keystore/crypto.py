@@ -38,24 +38,47 @@ KDF_R = 8
 KDF_P = 1
 SALT_BYTES = 16
 
+# Upper bounds on stored KDF params (WR-02). scrypt memory cost is roughly
+# 128 * n * r bytes; with no ceiling, a hand-edited/corrupted keystore file
+# (e.g. n = 2**30) forces a multi-hundred-GB allocation on load -- a real
+# MemoryError/OOM crash, not the typed KeystoreConfigError this module's
+# fail-loud contract promises. These ceilings comfortably exceed the locked
+# defaults (n=2**17, r=8, p=1) for forward-compat headroom while capping
+# worst-case resource use to a bounded, sane amount.
+KDF_N_MAX = 2**20  # ~1 GiB scrypt working set ceiling at r=8.
+KDF_R_MAX = 32
+KDF_P_MAX = 16
+
 
 def _validate_kdf_params(n: object, r: object, p: object) -> None:
     """Fail loud on a malformed stored KDF parameter, before any derive.
 
-    ``n`` must be an integer greater than 1 and a power of two (scrypt's own
-    constraint, RFC 7914); ``r``/``p`` must be positive integers. Called at
-    the top of ``decrypt_secret`` so a hand-edited or corrupt keystore file
-    raises a clear typed error instead of a raw ``ValueError`` from
-    ``Scrypt()`` construction.
+    ``n`` must be an integer greater than 1, a power of two (scrypt's own
+    constraint, RFC 7914), and no greater than ``KDF_N_MAX``; ``r``/``p``
+    must be positive integers no greater than ``KDF_R_MAX``/``KDF_P_MAX``.
+    Called at the top of ``decrypt_secret`` so a hand-edited or corrupt
+    keystore file raises a clear typed error instead of a raw ``ValueError``
+    from ``Scrypt()`` construction -- or worse, an unbounded resource-
+    exhausting allocation (WR-02).
     """
-    if isinstance(n, bool) or not isinstance(n, int) or n <= 1 or (n & (n - 1)) != 0:
+    if (
+        isinstance(n, bool)
+        or not isinstance(n, int)
+        or n <= 1
+        or (n & (n - 1)) != 0
+        or n > KDF_N_MAX
+    ):
         raise KeystoreConfigError(
-            "Malformed keystore KDF parameter: n must be an integer > 1 and a power of two."
+            "Malformed keystore KDF parameter: n must be a power of two in a bounded range."
         )
-    if isinstance(r, bool) or not isinstance(r, int) or r <= 0:
-        raise KeystoreConfigError("Malformed keystore KDF parameter: r must be a positive integer.")
-    if isinstance(p, bool) or not isinstance(p, int) or p <= 0:
-        raise KeystoreConfigError("Malformed keystore KDF parameter: p must be a positive integer.")
+    if isinstance(r, bool) or not isinstance(r, int) or r <= 0 or r > KDF_R_MAX:
+        raise KeystoreConfigError(
+            "Malformed keystore KDF parameter: r must be a positive integer in a bounded range."
+        )
+    if isinstance(p, bool) or not isinstance(p, int) or p <= 0 or p > KDF_P_MAX:
+        raise KeystoreConfigError(
+            "Malformed keystore KDF parameter: p must be a positive integer in a bounded range."
+        )
 
 
 def _derive_fernet_key(passphrase: str, salt: bytes, n: int, r: int, p: int) -> bytes:

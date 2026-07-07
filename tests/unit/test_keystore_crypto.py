@@ -134,6 +134,35 @@ def test_param_validation_rejects_zero_p():
         decrypt_secret(PASSPHRASE, blob)
 
 
+def test_param_validation_rejects_oversized_n():
+    """A tampered ``n`` that is a power of two but far exceeds the ceiling
+    must be rejected with a typed error BEFORE any scrypt derivation is
+    attempted (WR-02) -- otherwise a hand-edited file with e.g. n = 2**30
+    forces a multi-gigabyte allocation / OOM instead of a clean fail-loud
+    error."""
+    blob = encrypt_secret(PASSPHRASE, _payload())
+    blob["n"] = 2**24  # power of two, comfortably above KDF_N_MAX
+
+    with pytest.raises(KeystoreConfigError):
+        decrypt_secret(PASSPHRASE, blob)
+
+
+def test_param_validation_rejects_oversized_r():
+    blob = encrypt_secret(PASSPHRASE, _payload())
+    blob["r"] = 10_000
+
+    with pytest.raises(KeystoreConfigError):
+        decrypt_secret(PASSPHRASE, blob)
+
+
+def test_param_validation_rejects_oversized_p():
+    blob = encrypt_secret(PASSPHRASE, _payload())
+    blob["p"] = 10_000
+
+    with pytest.raises(KeystoreConfigError):
+        decrypt_secret(PASSPHRASE, blob)
+
+
 def test_forward_compat_decrypts_with_valid_non_default_params():
     """A blob whose stored n/r/p differ from current defaults (but are each
     individually valid) must still decrypt — params come from the file, not
