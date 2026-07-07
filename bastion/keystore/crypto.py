@@ -29,7 +29,7 @@ import os
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
-from bastion.keystore.errors import KeystoreWrongPassphraseError
+from bastion.keystore.errors import KeystoreConfigError, KeystoreWrongPassphraseError
 
 KEYSTORE_VERSION = 1
 KDF_NAME = "scrypt"
@@ -37,6 +37,25 @@ KDF_N = 2**17  # 131072 — OWASP-floor-or-above scrypt cost parameter (locked).
 KDF_R = 8
 KDF_P = 1
 SALT_BYTES = 16
+
+
+def _validate_kdf_params(n: object, r: object, p: object) -> None:
+    """Fail loud on a malformed stored KDF parameter, before any derive.
+
+    ``n`` must be an integer greater than 1 and a power of two (scrypt's own
+    constraint, RFC 7914); ``r``/``p`` must be positive integers. Called at
+    the top of ``decrypt_secret`` so a hand-edited or corrupt keystore file
+    raises a clear typed error instead of a raw ``ValueError`` from
+    ``Scrypt()`` construction.
+    """
+    if isinstance(n, bool) or not isinstance(n, int) or n <= 1 or (n & (n - 1)) != 0:
+        raise KeystoreConfigError(
+            "Malformed keystore KDF parameter: n must be an integer > 1 and a power of two."
+        )
+    if isinstance(r, bool) or not isinstance(r, int) or r <= 0:
+        raise KeystoreConfigError("Malformed keystore KDF parameter: r must be a positive integer.")
+    if isinstance(p, bool) or not isinstance(p, int) or p <= 0:
+        raise KeystoreConfigError("Malformed keystore KDF parameter: p must be a positive integer.")
 
 
 def _derive_fernet_key(passphrase: str, salt: bytes, n: int, r: int, p: int) -> bytes:
@@ -77,13 +96,15 @@ def encrypt_secret(passphrase: str, plaintext: bytes) -> dict:
 def decrypt_secret(passphrase: str, blob: dict) -> bytes:
     """Decrypt a blob produced by ``encrypt_secret``, failing closed.
 
-    Re-derives the key from the stored ``salt``/``n``/``r``/`p`` (never a
-    global assumption, so files with valid non-default params still
-    decrypt), then lets Fernet's own HMAC authentication decide validity: a
-    wrong passphrase or a tampered ciphertext raises
+    Validates the blob's stored KDF parameters before deriving. Re-derives
+    the key from the stored ``salt``/``n``/``r``/`p`` (never a global
+    assumption, so files with valid non-default params still decrypt), then
+    lets Fernet's own HMAC authentication decide validity: a wrong
+    passphrase or a tampered ciphertext raises
     ``KeystoreWrongPassphraseError`` — never a partial or garbage value.
     """
     n, r, p = blob["n"], blob["r"], blob["p"]
+    _validate_kdf_params(n, r, p)
 
     salt = base64.urlsafe_b64decode(blob["salt"])
     key = _derive_fernet_key(passphrase, salt, n, r, p)
