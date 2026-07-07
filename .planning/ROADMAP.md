@@ -14,7 +14,7 @@ Bastion is built bottom-up as a strictly layered, gated stack: each phase delive
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation — Config + RPC Client** - Env config, safety rails, and a mockable JSON-RPC + WebSocket transport both trust zones depend on (completed 2026-07-07)
-- [ ] **Phase 2: Encrypted Keystore + Key-Safety Invariants** - Session keys encrypted at rest (scrypt→Fernet, 0600), never leaked, cloud-sync refused — before any funds move
+- [x] **Phase 2: Encrypted Keystore + Key-Safety Invariants** - Session keys encrypted at rest (scrypt→Fernet, 0600), never leaked, cloud-sync refused — before any funds move (completed 2026-07-07)
 - [ ] **Phase 3: Fund-Moving on Devnet (Funder + Sweeper)** - Capped vault→session funding and exact-zero session→vault sweep, validated end-to-end on devnet
 - [ ] **Phase 4: Persistence — SQLite Store + Audit Log** - WAL-mode idempotent store (sessions/transactions/alerts/baselines/cursors) plus append-only JSONL audit trail
 - [ ] **Phase 5: Scoring Engine + LLM-Egress Boundary** - Deterministic, fixture-validated behavioral scoring with the scoring⇏keystore egress boundary enforced structurally
@@ -66,7 +66,7 @@ Plans:
   4. Startup refuses to run when KEYSTORE_DIR resolves under a cloud-sync path (Dropbox/OneDrive/iCloud/Google Drive), verified with a synthetic path.
   5. Passphrase entry is confirmed on create, never echoed to the terminal, and never logged.
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans complete
 
 Plans:
 **Wave 1**
@@ -81,7 +81,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 02-05-PLAN.md — `keystore/session.py`: `SessionKeypair` (redacted) + generate/save(atomic 0600)/load(fail-closed)/retire + full-flow no-secret-in-logs regression
+- [x] 02-05-PLAN.md — `keystore/session.py`: `SessionKeypair` (redacted) + generate/save(atomic 0600)/load(fail-closed)/retire + full-flow no-secret-in-logs regression
 
 **Note**: Roadmap proposed 4 plans; split to 5 because a Wave 1 setup plan (deps + package + error contract, gated by a one-time package-legitimacy checkpoint) must precede the feature modules, and the cloud-sync/passphrase rails are separated from `session.py` so crypto (02-02), vault (02-03), and the rails (02-04) run in parallel in Wave 2 with no shared-file conflicts; `session.py` integrates them in Wave 3.
 **UI hint**: no
@@ -240,7 +240,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation — Config + RPC Client | 4/4 | Complete    | 2026-07-07 |
-| 2. Encrypted Keystore + Key-Safety Invariants | 4/5 | In Progress|  |
+| 2. Encrypted Keystore + Key-Safety Invariants | 5/5 | Complete   | 2026-07-07 |
 | 3. Fund-Moving on Devnet (Funder + Sweeper) | 0/4 | Not started | - |
 | 4. Persistence — SQLite Store + Audit Log | 0/3 | Not started | - |
 | 5. Scoring Engine + LLM-Egress Boundary | 0/5 | Not started | - |

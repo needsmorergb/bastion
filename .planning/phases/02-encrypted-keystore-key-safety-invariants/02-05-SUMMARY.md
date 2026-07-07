@@ -167,3 +167,7 @@ One residual note carried to CI/release checklist: the exact-0600 permission ass
 ---
 *Phase: 02-encrypted-keystore-key-safety-invariants*
 *Completed: 2026-07-07*
+
+## Self-Check: PASSED
+
+All created files verified present on disk; all task/summary commit hashes (2a4904e, df0f070, 886076e, 8f84843) verified present in git log.
