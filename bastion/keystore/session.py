@@ -1,0 +1,157 @@
+"""The session-keystore lifecycle: generate, save, load, retire.
+
+Assembles the crypto core (``bastion.keystore.crypto``) and the safety rails
+(``bastion.keystore.cloudsync``) into the user-visible flow for a disposable
+session wallet (SESS-01, SESS-04, SESS-05, SEC-01). This module is the ONLY
+place that reads/writes ``<pubkey>.json`` keystore files.
+
+``SessionKeypair`` wraps the decrypted 64-byte keypair as a ``bytearray`` so
+its ``retire()`` can best-effort zero it in place -- CPython's ``bytes`` type
+is immutable, so anything returned as ``bytes`` (Fernet's ``decrypt()``,
+``solders``'s ``.secret()``) cannot be wiped in place; only an explicitly
+constructed ``bytearray`` can be (see 02-RESEARCH.md Pitfall 5). This is a
+best-effort mitigation, not a guarantee -- Python cannot ensure every copy of
+the underlying memory is unreachable or overwritten.
+
+The decrypted secret is surfaced per-call only from ``load()``: it is never
+cached in a module-level global, matching CONTEXT.md's locked decision.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+from dataclasses import dataclass, field
+
+from solders.keypair import Keypair
+
+from bastion.keystore import crypto
+from bastion.keystore.cloudsync import check_keystore_dir
+
+
+@dataclass
+class SessionKeypair:
+    """A disposable session wallet's keypair, held in memory only.
+
+    ``_secret`` is a mutable ``bytearray`` (64 bytes: 32 secret + 32 pubkey,
+    matching ``solders``'s ``bytes(Keypair)`` layout) so ``zeroize()`` can
+    overwrite it in place on retire. ``repr``/``str`` never render the
+    secret -- only ``pubkey`` and the literal string ``REDACTED``.
+    """
+
+    pubkey: str
+    _secret: bytearray = field(repr=False)
+
+    def __repr__(self) -> str:
+        return f"SessionKeypair(pubkey={self.pubkey!r}, secret=REDACTED)"
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def zeroize(self) -> None:
+        """Best-effort overwrite of the in-memory secret bytearray.
+
+        This does NOT guarantee the secret is unrecoverable from memory --
+        Python's memory management, garbage collector, and any prior copies
+        (e.g. an intermediate ``bytes`` object from ``Keypair``/``Fernet``)
+        may still hold the plaintext elsewhere. This only zeroes the one
+        mutable buffer this object owns (02-RESEARCH.md Pitfall 5).
+        """
+        self._secret[:] = b"\x00" * len(self._secret)
+
+
+def generate() -> SessionKeypair:
+    """Create a fresh, unique session keypair.
+
+    Each call constructs a brand-new ``solders.keypair.Keypair()`` (random),
+    so two calls never yield the same pubkey.
+    """
+    kp = Keypair()
+    return SessionKeypair(pubkey=str(kp.pubkey()), _secret=bytearray(bytes(kp)))
+
+
+def _atomic_write_json(path: str, data: bytes) -> None:
+    """Write ``data`` to ``path`` atomically via temp file + os.replace.
+
+    ``os.chmod(tmp, 0o600)`` is genuinely restrictive on POSIX; on Windows it
+    only toggles the DOS read-only attribute and does NOT restrict other
+    accounts (02-RESEARCH.md Pitfall 1) -- documented, not silently assumed.
+    ``os.replace`` is atomic same-volume on both POSIX and Windows, so a
+    crash mid-write never leaves a truncated file at the final path.
+    """
+    directory = os.path.dirname(path) or "."
+    fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".tmp-", suffix=".json")
+    try:
+        os.write(fd, data)
+    finally:
+        os.close(fd)
+    os.chmod(tmp_path, 0o600)  # best-effort on Windows, real on POSIX (Pitfall 1)
+    os.replace(tmp_path, path)
+
+
+def save(
+    session: SessionKeypair,
+    keystore_dir: str,
+    passphrase: str,
+    allow_cloud_sync: bool = False,
+) -> str:
+    """Encrypt and atomically write ``session`` to ``<keystore_dir>/<pubkey>.json``.
+
+    Calls ``check_keystore_dir`` first (empty-dir / cloud-sync guards, SEC-04)
+    before touching the filesystem. The written blob is ciphertext-only --
+    the passphrase and plaintext secret are never logged or included in any
+    exception message. Returns the final file path.
+    """
+    check_keystore_dir(keystore_dir, allow_cloud_sync)
+
+    blob = crypto.encrypt_secret(passphrase, bytes(session._secret))
+    data = json.dumps(blob).encode("utf-8")
+
+    path = os.path.join(keystore_dir, f"{session.pubkey}.json")
+    _atomic_write_json(path, data)
+    return path
+
+
+def load(pubkey: str, keystore_dir: str, passphrase: str) -> SessionKeypair:
+    """Decrypt and return the ``SessionKeypair`` stored at ``<keystore_dir>/<pubkey>.json``.
+
+    Fails closed (SESS-05): a wrong passphrase or a tampered/corrupted file
+    propagates ``KeystoreWrongPassphraseError`` from ``crypto.decrypt_secret``
+    unchanged -- never caught-and-swallowed into a partial/garbage return.
+    ``Keypair.from_bytes`` provides a second fail-closed validation layer
+    (raises on a corrupted 64-byte blob rather than silently accepting it).
+    The decrypted secret is returned fresh on every call -- never cached in
+    a module-level global.
+    """
+    path = os.path.join(keystore_dir, f"{pubkey}.json")
+    with open(path, encoding="utf-8") as f:
+        blob = json.load(f)
+
+    plaintext = crypto.decrypt_secret(passphrase, blob)
+    restored = Keypair.from_bytes(plaintext)  # second fail-closed validation
+
+    return SessionKeypair(pubkey=str(restored.pubkey()), _secret=bytearray(bytes(restored)))
+
+
+def retire(session_or_pubkey: SessionKeypair | str, keystore_dir: str) -> None:
+    """Remove the keystore file and best-effort zeroize the in-memory secret.
+
+    Accepts either a ``SessionKeypair`` (its ``zeroize()`` is called) or a
+    bare pubkey string (no in-memory secret to zeroize). Tolerates an
+    already-absent file (best-effort delete, not a hard requirement that the
+    file still exists).
+    """
+    if isinstance(session_or_pubkey, SessionKeypair):
+        pubkey = session_or_pubkey.pubkey
+    else:
+        pubkey = session_or_pubkey
+
+    path = os.path.join(keystore_dir, f"{pubkey}.json")
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+
+    if isinstance(session_or_pubkey, SessionKeypair):
+        session_or_pubkey.zeroize()
