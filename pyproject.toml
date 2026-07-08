@@ -21,6 +21,9 @@ packages = ["bastion"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "devnet: opt-in tests that hit a live Solana devnet RPC and the airdrop faucet",
+]
 
 [dependency-groups]
 dev = [
