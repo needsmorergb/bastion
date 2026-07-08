@@ -10,8 +10,8 @@ Requirements for the initial release (personal-use MVP through mainnet shakeout 
 ### Session & Keys
 
 - [x] **SESS-01**: User can generate a fresh Solana keypair for a new session
-- [ ] **SESS-02**: User can fund a session wallet from the vault with a specified SOL cap
-- [ ] **SESS-03**: System refuses to fund when the requested cap exceeds `MAX_SESSION_CAP`
+- [x] **SESS-02**: User can fund a session wallet from the vault with a specified SOL cap
+- [x] **SESS-03**: System refuses to fund when the requested cap exceeds `MAX_SESSION_CAP`
 - [x] **SESS-04**: Session keys are encrypted at rest (scrypt → Fernet) and keystore files are owner-only (0600)
 - [x] **SESS-05**: User can load a session keypair by pubkey with a passphrase; a wrong passphrase fails closed
 - [ ] **SESS-06**: User can sweep remaining SOL back to the vault on manual session end
@@ -23,7 +23,7 @@ Requirements for the initial release (personal-use MVP through mainnet shakeout 
 <!-- Each is a test, not a comment. -->
 
 - [x] **SEC-01**: No plaintext private key is ever written to disk or emitted to logs
-- [ ] **SEC-02**: The vault secret is loaded only for funding; sweeps target `VAULT_PUBKEY` and require no vault secret
+- [x] **SEC-02**: The vault secret is loaded only for funding; sweeps target `VAULT_PUBKEY` and require no vault secret
 - [ ] **SEC-03**: The scoring/LLM path can access only public on-chain data and has no keystore access (structural import boundary + canary test)
 - [x] **SEC-04**: System refuses to run when the keystore directory appears to be cloud-synced
 - [x] **SEC-05**: Passphrase entry is confirmed on create, never echoed to the terminal, and never logged
@@ -123,15 +123,15 @@ Which phases cover which requirements. Populated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SESS-01 | Phase 2 | Complete |
-| SESS-02 | Phase 3 | Pending |
-| SESS-03 | Phase 3 | Pending |
+| SESS-02 | Phase 3 | Complete |
+| SESS-03 | Phase 3 | Complete |
 | SESS-04 | Phase 2 | Complete |
 | SESS-05 | Phase 2 | Complete |
 | SESS-06 | Phase 3 | Pending |
 | SESS-07 | Phase 3 | Pending |
 | SESS-08 | Phase 7 | Pending |
 | SEC-01 | Phase 2 | Complete |
-| SEC-02 | Phase 3 | Pending |
+| SEC-02 | Phase 3 | Complete |
 | SEC-03 | Phase 5 | Pending |
 | SEC-04 | Phase 2 | Complete |
 | SEC-05 | Phase 2 | Complete |
