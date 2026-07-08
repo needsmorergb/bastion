@@ -86,6 +86,15 @@ async def fund_session(
         ) from exc
 
     amount_lamports = round(amount_sol * LAMPORTS_PER_SOL)
+    # WR-01: a positive, finite amount_sol can still round to 0 lamports
+    # (any 0 < amount_sol < 5e-10). Refuse before any RPC call rather than
+    # signing/sending a real, fee-costing zero-lamport transfer that leaves
+    # the session's balance unchanged while still debiting the vault fee.
+    if amount_lamports < 1:
+        raise FunderInvalidAmountError(
+            f"amount_sol={amount_sol!r} rounds to {amount_lamports} lamports; "
+            "must be at least 1 lamport"
+        )
 
     vault_kp = load_vault(config)
     vault_balance = await rpc.get_balance(str(vault_kp.pubkey()))

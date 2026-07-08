@@ -115,6 +115,24 @@ async def test_invalid_amount_raises_before_rpc(rpc_harness):
 
 
 @pytest.mark.asyncio
+async def test_sub_lamport_amount_raises_before_any_rpc_call(rpc_harness):
+    """WR-01 regression: an amount_sol that is positive/finite but rounds to
+    0 lamports must be refused before any signing/sending happens -- never a
+    real, fee-costing zero-lamport transfer sent to the network."""
+    client, router = rpc_harness
+    route = router.post(RPC_TEST_BASE_URL).mock(
+        return_value=httpx.Response(200, json={"jsonrpc": "2.0", "result": "ok", "id": 1})
+    )
+    rpc = RpcClient(client)
+    config = _base_config()
+
+    with pytest.raises(FunderInvalidAmountError):
+        await fund_session(rpc, config, SESSION_PUBKEY, 1e-10)  # rounds to 0 lamports
+
+    assert route.call_count == 0
+
+
+@pytest.mark.asyncio
 async def test_invalid_session_pubkey_raises_funder_invalid_amount_error(rpc_harness):
     client, router = rpc_harness
     router.post(RPC_TEST_BASE_URL).mock(
