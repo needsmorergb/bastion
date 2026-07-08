@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation — Config + RPC Client** - Env config, safety rails, and a mockable JSON-RPC + WebSocket transport both trust zones depend on (completed 2026-07-07)
 - [x] **Phase 2: Encrypted Keystore + Key-Safety Invariants** - Session keys encrypted at rest (scrypt→Fernet, 0600), never leaked, cloud-sync refused — before any funds move (completed 2026-07-07)
-- [ ] **Phase 3: Fund-Moving on Devnet (Funder + Sweeper)** - Capped vault→session funding and exact-zero session→vault sweep, validated end-to-end on devnet
+- [x] **Phase 3: Fund-Moving on Devnet (Funder + Sweeper)** - Capped vault→session funding and exact-zero session→vault sweep, validated end-to-end on devnet (completed 2026-07-08)
 - [ ] **Phase 4: Persistence — SQLite Store + Audit Log** - WAL-mode idempotent store (sessions/transactions/alerts/baselines/cursors) plus append-only JSONL audit trail
 - [ ] **Phase 5: Scoring Engine + LLM-Egress Boundary** - Deterministic, fixture-validated behavioral scoring with the scoring⇏keystore egress boundary enforced structurally
 - [ ] **Phase 6: Live Monitor, Out-of-Band Alerting + Armed Auto-Sweep** - Near-real-time detection surviving RPC hiccups; out-of-band alerts and (armed only) auto-sweep containment
@@ -99,7 +99,7 @@ Plans:
   4. The sweep path loads only the session key and VAULT_PUBKEY and is structurally incapable of loading the vault secret; an injected post-send timeout produces no double-spend.
   5. A swept session's keystore can be retired, and retire refuses to hard-delete when a nonzero token balance remains.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 
 Plans:
 
@@ -114,7 +114,7 @@ Plans:
 
 **Wave 3** *(blocked on 03-01, 03-02)*
 
-- [ ] 03-04-PLAN.md — devnet e2e: fund→sweep round trip exact delta, exact-zero-with-ATA close, injected-timeout no-double-spend (D-08); opt-in `devnet` marker, airdrop-429 skip-not-fail
+- [x] 03-04-PLAN.md — devnet e2e: fund→sweep round trip exact delta, exact-zero-with-ATA close, injected-timeout no-double-spend (D-08); opt-in `devnet` marker, airdrop-429 skip-not-fail
 
 **Note**: Roadmap proposed a flat 4-plan split with 03-01/03-02/03-03 all in Wave 1. Deviated on waves only (not plan count): funder and sweeper both extend `bastion/rpc/client.py` and share one land-check loop, so they cannot run in the same wave without a `files_modified` conflict. The shared land-check lives in a new `bastion/land_check.py` (owned by 03-01) rather than inside funder.py, so the sweeper imports it without coupling to the vault-privileged funder module. Sweeper (03-02) therefore moves to Wave 2; retire (03-03) is genuinely file-independent and stays in Wave 1 alongside the funder.
 
@@ -251,7 +251,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|----------------|--------|-----------|
 | 1. Foundation — Config + RPC Client | 4/4 | Complete    | 2026-07-07 |
 | 2. Encrypted Keystore + Key-Safety Invariants | 5/5 | Complete    | 2026-07-07 |
-| 3. Fund-Moving on Devnet (Funder + Sweeper) | 3/4 | In Progress|  |
+| 3. Fund-Moving on Devnet (Funder + Sweeper) | 4/4 | Complete   | 2026-07-08 |
 | 4. Persistence — SQLite Store + Audit Log | 0/3 | Not started | - |
 | 5. Scoring Engine + LLM-Egress Boundary | 0/5 | Not started | - |
 | 6. Live Monitor, Out-of-Band Alerting + Armed Auto-Sweep | 0/5 | Not started | - |

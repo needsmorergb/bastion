@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 03
 current_phase_name: Fund-Moving on Devnet (Funder + Sweeper
-status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-07-08T02:20:27.695Z"
+status: verifying
+stopped_at: Completed 03-04-PLAN.md
+last_updated: "2026-07-08T02:32:10.772Z"
 last_activity: 2026-07-08
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 13
-  completed_plans: 12
-  percent: 25
+  completed_plans: 13
+  percent: 38
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 
 Phase: 03 (Fund-Moving on Devnet (Funder + Sweeper)) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-08 — Phase 03 execution started
 
 Progress: [██░░░░░░░░] 25% (2/8 phases)
@@ -65,6 +65,7 @@ Progress: [██░░░░░░░░] 25% (2/8 phases)
 | Phase 03 P01 | 15min | 2 tasks | 7 files |
 | Phase 03 P03 | 6min | 2 tasks | 3 files |
 | Phase 03 P02 | 20min | 2 tasks | 4 files |
+| Phase 03-fund-moving-on-devnet-funder-sweeper P04 | 15min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,8 @@ Recent decisions affecting current work:
 - [Phase 02-05]: Task 2 no-secret-leak test uses capfd only (not capsys+capfd together) since pytest disallows requesting both fixtures in one test; capfd kept per RESEARCH guidance as the stronger guarantee for compiled-extension deps
 - [Phase 03-02]: Sweeper reads Config.vault_pubkey only and reconstructs the session Keypair via Keypair.from_bytes(bytes(session._secret)); never imports bastion.keystore.vault (SEC-02)
 - [Phase 03-02]: Exact-zero transfer amount = balance - getFeeForMessage(confirmed) fee, computed via a probe MessageV0 compiled before the final message; FEE_RESERVE_LAMPORTS is never read by sweep_session
+- [Phase 03-04]: funded_session uses a module-level cache instead of a session-scoped async fixture to avoid pytest-asyncio event-loop-scope coupling while still airdropping at most once per run
+- [Phase 03-04]: BASTION_E2E_KEYPAIR/BASTION_E2E_MINT env vars let an operator supply pre-funded resources and bypass faucet/mint-creation steps for real devnet runs
 
 ### Pending Todos
 
@@ -110,6 +113,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T02:20:27.689Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-07-08T02:32:10.766Z
+Stopped at: Completed 03-04-PLAN.md
 Resume file: None
