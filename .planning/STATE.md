@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 3
 current_phase_name: Funder + Sweeper
 status: verifying
-stopped_at: Completed 02-04-PLAN.md
-last_updated: "2026-07-07T21:24:42.626Z"
+stopped_at: Phase 3 context gathered
+last_updated: "2026-07-08T01:13:55.163Z"
 last_activity: 2026-07-07
 last_activity_desc: Phase 02 complete, transitioned to Phase 3
 progress:
@@ -105,6 +105,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T20:59:36.114Z
-Stopped at: Completed 02-04-PLAN.md
-Resume file: None
+Last session: 2026-07-08T01:13:55.157Z
+Stopped at: Phase 3 context gathered
+Resume file: .planning/phases/03-fund-moving-on-devnet-funder-sweeper/03-CONTEXT.md
