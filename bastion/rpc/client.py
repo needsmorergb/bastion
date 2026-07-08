@@ -215,6 +215,25 @@ class RpcClient:
             [signatures, {"searchTransactionHistory": search_history}],
         )
 
+    async def get_token_accounts_by_owner(self, owner_pubkey: str) -> list[dict]:
+        """Return the jsonParsed SPL Token accounts owned by ``owner_pubkey``.
+
+        Issues ``getTokenAccountsByOwner`` scoped to the SPL Token program
+        (``TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA``) with
+        ``{"encoding": "jsonParsed"}`` and returns ``result["value"]`` (a
+        list of account dicts) directly — used by the sweeper (D-06) and
+        the session retire guard (D-10) to classify empty vs nonzero ATAs.
+        """
+        result = await self.call(
+            "getTokenAccountsByOwner",
+            [
+                owner_pubkey,
+                {"programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
+                {"encoding": "jsonParsed"},
+            ],
+        )
+        return result["value"]
+
     async def send_raw(self, signed_tx_b64: str) -> object:
         """Issue ``sendTransaction`` carrying the base64-encoded signed blob.
 
