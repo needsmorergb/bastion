@@ -99,7 +99,7 @@ Plans:
   4. The sweep path loads only the session key and VAULT_PUBKEY and is structurally incapable of loading the vault secret; an injected post-send timeout produces no double-spend.
   5. A swept session's keystore can be retired, and retire refuses to hard-delete when a nonzero token balance remains.
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 
 Plans:
 
@@ -110,7 +110,7 @@ Plans:
 
 **Wave 2** *(blocked on 03-01)*
 
-- [ ] 03-02-PLAN.md — sweeper.py: session→vault exact-zero via getFeeForMessage (D-05), one atomic tx closing empty ATAs + SOL transfer (D-06), sub-fee dust no-op (D-07), `get_token_accounts_by_owner`; never imports vault.py, signs session-key-only (SEC-02)
+- [x] 03-02-PLAN.md — sweeper.py: session→vault exact-zero via getFeeForMessage (D-05), one atomic tx closing empty ATAs + SOL transfer (D-06), sub-fee dust no-op (D-07), `get_token_accounts_by_owner`; never imports vault.py, signs session-key-only (SEC-02)
 
 **Wave 3** *(blocked on 03-01, 03-02)*
 
@@ -251,7 +251,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|----------------|--------|-----------|
 | 1. Foundation — Config + RPC Client | 4/4 | Complete    | 2026-07-07 |
 | 2. Encrypted Keystore + Key-Safety Invariants | 5/5 | Complete    | 2026-07-07 |
-| 3. Fund-Moving on Devnet (Funder + Sweeper) | 2/4 | In Progress|  |
+| 3. Fund-Moving on Devnet (Funder + Sweeper) | 3/4 | In Progress|  |
 | 4. Persistence — SQLite Store + Audit Log | 0/3 | Not started | - |
 | 5. Scoring Engine + LLM-Egress Boundary | 0/5 | Not started | - |
 | 6. Live Monitor, Out-of-Band Alerting + Armed Auto-Sweep | 0/5 | Not started | - |

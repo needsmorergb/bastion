@@ -14,7 +14,7 @@ Requirements for the initial release (personal-use MVP through mainnet shakeout 
 - [x] **SESS-03**: System refuses to fund when the requested cap exceeds `MAX_SESSION_CAP`
 - [x] **SESS-04**: Session keys are encrypted at rest (scrypt → Fernet) and keystore files are owner-only (0600)
 - [x] **SESS-05**: User can load a session keypair by pubkey with a passphrase; a wrong passphrase fails closed
-- [ ] **SESS-06**: User can sweep remaining SOL back to the vault on manual session end
+- [x] **SESS-06**: User can sweep remaining SOL back to the vault on manual session end
 - [x] **SESS-07**: User can retire (remove) a session keystore after it has been swept
 - [ ] **SESS-08**: User can opt into session rotation triggered by a loss or time threshold (not per-fill)
 
@@ -127,7 +127,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | SESS-03 | Phase 3 | Complete |
 | SESS-04 | Phase 2 | Complete |
 | SESS-05 | Phase 2 | Complete |
-| SESS-06 | Phase 3 | Pending |
+| SESS-06 | Phase 3 | Complete |
 | SESS-07 | Phase 3 | Complete |
 | SESS-08 | Phase 7 | Pending |
 | SEC-01 | Phase 2 | Complete |
