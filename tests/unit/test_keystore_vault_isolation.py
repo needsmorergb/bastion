@@ -169,3 +169,29 @@ def test_only_allowlisted_modules_import_vault():
         f"Only {ALLOWED_IMPORTERS} may import {FORBIDDEN_MODULE}, but found "
         f"imports in: {offenders}"
     )
+
+
+def test_sweeper_does_not_import_vault():
+    """SEC-02 negative contract, explicit for the sweeper (03-02).
+
+    The sweeper is structurally incapable of loading the vault secret: it
+    must never appear among the modules importing bastion.keystore.vault.
+    This is stronger than merely implied by the subset check in
+    test_only_allowlisted_modules_import_vault — it fails the build the
+    moment sweeper.py imports vault.py, even if some other module were
+    added to ALLOWED_IMPORTERS in the same change.
+    """
+    repo_root = Path(__file__).resolve().parents[2]
+    bastion_dir = repo_root / "bastion"
+
+    offenders: dict[str, list[int]] = {}
+    for py_file in bastion_dir.rglob("*.py"):
+        rel_path = py_file.relative_to(repo_root).as_posix()
+        import_lines = _find_vault_imports(py_file)
+        if import_lines:
+            offenders[rel_path] = import_lines
+
+    assert "bastion/sweeper.py" not in offenders, (
+        f"sweeper.py must never import {FORBIDDEN_MODULE} (SEC-02), but "
+        f"found imports at lines: {offenders.get('bastion/sweeper.py')}"
+    )
