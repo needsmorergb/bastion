@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 03
 current_phase_name: Fund-Moving on Devnet (Funder + Sweeper
-status: verifying
-stopped_at: Completed 03-04-PLAN.md
+status: verification_deferred_human
+stopped_at: "Phase 03 verification human_needed (devnet e2e pending real credentials) — autonomous run stopped by user"
 last_updated: "2026-07-08T02:32:10.772Z"
 last_activity: 2026-07-08
-last_activity_desc: Phase 03 execution started
+last_activity_desc: Phase 03 executed + code-reviewed; verification human_needed; autonomous run stopped
 progress:
   total_phases: 8
-  completed_phases: 3
+  completed_phases: 2
   total_plans: 13
   completed_plans: 13
-  percent: 38
+  percent: 25
 ---
 
 # Project State
@@ -28,12 +28,12 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 
 ## Current Position
 
-Phase: 03 (Fund-Moving on Devnet (Funder + Sweeper)) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-07-08 — Phase 03 execution started
+Phase: 03 (Fund-Moving on Devnet (Funder + Sweeper)) — EXECUTED, verification human_needed
+Plan: 4 of 4 executed
+Status: All 4 plans built + code-reviewed (1 critical + 4 warnings found & fixed, re-verified 0/0); unit suite 130 passed. Verification human_needed — devnet e2e tests written but pending a real-chain run with devnet credentials.
+Last activity: 2026-07-08 — Phase 03 executed; autonomous run stopped by user at the devnet-validation decision
 
-Progress: [██░░░░░░░░] 25% (2/8 phases)
+Progress: [██░░░░░░░░] 25% (2/8 phases complete; Phase 03 executed, pending devnet validation)
 
 ## Performance Metrics
 
@@ -103,6 +103,12 @@ None yet.
 - [Phase 5]: Two golden fixtures (5YEQ churn + clean day) are necessary but insufficient — expand the aggressive-but-legitimate fixture library before recommending `--armed` for real use.
 - [Phase 8]: Stranger mainnet distribution additionally requires external security review + crypto counsel sign-off (tracked as v2 DIST items, out of this milestone's scope).
 
+## Deferred Verification
+
+| Phase | State | Resume |
+|-------|-------|--------|
+| 3 | verification_deferred_human | Run `uv run pytest -m devnet -q` with SOLANA_RPC + funded devnet VAULT_SECRET/VAULT_PUBKEY, then `/gsd-verify-work 3` |
+
 ## Deferred Items
 
 Items acknowledged and carried forward from previous milestone close:
@@ -114,5 +120,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-07-08T02:32:10.766Z
-Stopped at: Completed 03-04-PLAN.md
-Resume file: None
+Stopped at: Phase 03 verification human_needed — devnet e2e pending real credentials; autonomous run stopped by user
+Resume file: .planning/phases/03-fund-moving-on-devnet-funder-sweeper/03-VERIFICATION.md

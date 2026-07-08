@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation — Config + RPC Client** - Env config, safety rails, and a mockable JSON-RPC + WebSocket transport both trust zones depend on (completed 2026-07-07)
 - [x] **Phase 2: Encrypted Keystore + Key-Safety Invariants** - Session keys encrypted at rest (scrypt→Fernet, 0600), never leaked, cloud-sync refused — before any funds move (completed 2026-07-07)
-- [x] **Phase 3: Fund-Moving on Devnet (Funder + Sweeper)** - Capped vault→session funding and exact-zero session→vault sweep, validated end-to-end on devnet (completed 2026-07-08)
+- [ ] **Phase 3: Fund-Moving on Devnet (Funder + Sweeper)** - Capped vault→session funding and exact-zero session→vault sweep (executed + code-reviewed 2026-07-08; devnet e2e verification human_needed — run `pytest -m devnet` with real credentials, then `/gsd-verify-work 3`)
 - [ ] **Phase 4: Persistence — SQLite Store + Audit Log** - WAL-mode idempotent store (sessions/transactions/alerts/baselines/cursors) plus append-only JSONL audit trail
 - [ ] **Phase 5: Scoring Engine + LLM-Egress Boundary** - Deterministic, fixture-validated behavioral scoring with the scoring⇏keystore egress boundary enforced structurally
 - [ ] **Phase 6: Live Monitor, Out-of-Band Alerting + Armed Auto-Sweep** - Near-real-time detection surviving RPC hiccups; out-of-band alerts and (armed only) auto-sweep containment
@@ -251,7 +251,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|----------------|--------|-----------|
 | 1. Foundation — Config + RPC Client | 4/4 | Complete    | 2026-07-07 |
 | 2. Encrypted Keystore + Key-Safety Invariants | 5/5 | Complete    | 2026-07-07 |
-| 3. Fund-Moving on Devnet (Funder + Sweeper) | 4/4 | Complete   | 2026-07-08 |
+| 3. Fund-Moving on Devnet (Funder + Sweeper) | 4/4 | Executed — devnet verify pending | - |
 | 4. Persistence — SQLite Store + Audit Log | 0/3 | Not started | - |
 | 5. Scoring Engine + LLM-Egress Boundary | 0/5 | Not started | - |
 | 6. Live Monitor, Out-of-Band Alerting + Armed Auto-Sweep | 0/5 | Not started | - |
