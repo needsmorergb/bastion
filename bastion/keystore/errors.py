@@ -26,3 +26,8 @@ class KeystoreConfigError(KeystoreError):
     """Raised on an empty ``KEYSTORE_DIR`` or a malformed stored KDF
     parameter. Fails loud rather than silently defaulting, mirroring
     ``bastion.config``'s ``ConfigError`` posture."""
+
+
+class KeystoreRetireError(KeystoreError):
+    """Raised when ``retire()`` is asked to hard-delete a keystore while a
+    nonzero token balance remains in the session's ATAs (D-10, SESS-07)."""
