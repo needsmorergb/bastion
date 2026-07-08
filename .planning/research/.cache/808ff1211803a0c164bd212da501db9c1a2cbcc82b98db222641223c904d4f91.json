@@ -1,0 +1,1 @@
+{"content":"python-dotenv load_dotenv defaults to override=False - will NOT overwrite an existing os.environ value with the .env files value. This already satisfies process env wins over .env 12-factor with no extra code; override=True inverts this.","source":"web","provider":"webfetch","confidence":"LOW","fetched_at":"2026-07-07T14:36:29.783Z","ttl":86400000,"kind":"docs"}

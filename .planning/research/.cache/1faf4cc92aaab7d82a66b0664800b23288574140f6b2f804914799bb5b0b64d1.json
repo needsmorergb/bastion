@@ -1,0 +1,1 @@
+{"content":"respx supports side_effect as an iterable of httpx.Response objects to sequence mock responses per call, ideal for testing retry logic (e.g. 429 then 200). Integrates with pytest via respx_mock fixture or respx.mock decorator.","source":"web","provider":"websearch","confidence":"LOW","fetched_at":"2026-07-07T14:36:29.274Z","ttl":86400000,"kind":"docs"}
