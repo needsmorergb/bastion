@@ -186,6 +186,8 @@ def retire(
     session_or_pubkey: SessionKeypair | str,
     keystore_dir: str,
     token_accounts: list[dict] | None = None,
+    *,
+    token_check_skipped: bool = False,
 ) -> None:
     """Remove the keystore file and best-effort zeroize the in-memory secret.
 
@@ -196,16 +198,29 @@ def retire(
     build a filesystem path, so a path-traversal or absolute-path value is
     rejected with ``KeystoreConfigError`` before any file is deleted.
 
-    ``token_accounts`` (D-10/SESS-07): an optional list of jsonParsed
+    ``token_accounts`` (D-10/SESS-07): a list of jsonParsed
     ``getTokenAccountsByOwner``-shaped entries for the session's ATAs,
     freshly read and passed in by the caller (this module stays synchronous
     and never imports ``RpcClient``/``httpx``). When any account's
     ``account.data.parsed.info.tokenAmount.amount`` parses to an int > 0,
     retire refuses to hard-delete: it raises ``KeystoreRetireError`` and
     returns WITHOUT deleting the keystore file or zeroizing the in-memory
-    secret (fail-loud, never a silent skip). When ``token_accounts`` is
-    ``None`` or empty (or all amounts are zero), the guard is a no-op and
-    retire proceeds exactly as before (backward compatible).
+    secret (fail-loud, never a silent skip). An empty list (or a list whose
+    entries are all zero) is a verified-empty result and the guard is a
+    no-op.
+
+    ``token_check_skipped`` (WR-02, fail-closed by design): ``token_accounts
+    = None`` is ambiguous on its own -- it could mean "this caller never
+    intended to check" (a legitimate, pre-Phase-3 usage) OR "a token lookup
+    was attempted and failed (RPC error/timeout/rate limit)". Silently
+    treating both the same as "verified empty" would let a failed lookup
+    be mistaken for a confirmed-zero balance and orphan token funds behind
+    a deleted keystore. To keep ``token_accounts=None`` safe, the caller
+    must explicitly opt out of the check by passing
+    ``token_check_skipped=True`` -- this is the only way ``None`` is
+    accepted. Passing ``None`` without ``token_check_skipped=True`` raises
+    ``KeystoreRetireError`` (fail-closed on a genuinely unknown balance)
+    rather than silently proceeding.
     """
     if isinstance(session_or_pubkey, SessionKeypair):
         pubkey = session_or_pubkey.pubkey
@@ -213,6 +228,14 @@ def retire(
         pubkey = session_or_pubkey
 
     pubkey = _safe_pubkey(pubkey)
+
+    if token_accounts is None and not token_check_skipped:
+        raise KeystoreRetireError(
+            "Cannot retire session keystore: token balance was not checked "
+            "(token_accounts is None). Pass token_check_skipped=True only "
+            "for callers that intentionally never look up token accounts; "
+            "never pass None as a stand-in for a failed RPC lookup."
+        )
 
     if token_accounts:
         nonzero = [

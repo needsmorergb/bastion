@@ -49,8 +49,11 @@ def test_no_secret_leak_across_full_generate_save_load_retire_flow(capfd, caplog
     with pytest.raises(KeystoreWrongPassphraseError):
         load(session.pubkey, str(tmp_path), WRONG_SENTINEL_PASSPHRASE)
 
-    retire(session, str(tmp_path))
-    retire(loaded, str(tmp_path))
+    # WR-02: no token-balance check is being performed here -- this test
+    # exercises the secret-leak surface, not the D-10 guard -- so opt out
+    # explicitly rather than relying on the (now fail-closed) None default.
+    retire(session, str(tmp_path), token_check_skipped=True)
+    retire(loaded, str(tmp_path), token_check_skipped=True)
 
     fd_out_err = capfd.readouterr()
 

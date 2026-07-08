@@ -146,7 +146,10 @@ def test_retire_removes_keystore_file_and_zeroizes_secret(tmp_path):
     session = generate()
     path = save(session, str(tmp_path), PASSPHRASE)
 
-    retire(session, str(tmp_path))
+    # WR-02: a caller that intentionally never checks token balances must
+    # say so explicitly via token_check_skipped=True -- None alone is no
+    # longer accepted (fail-closed on a genuinely unknown balance).
+    retire(session, str(tmp_path), token_check_skipped=True)
 
     assert not os.path.exists(path)
     assert bytes(session._secret) == b"\x00" * len(session._secret)
@@ -156,7 +159,7 @@ def test_retire_tolerates_already_absent_file(tmp_path):
     session = generate()
     # Never saved -- file was never created.
 
-    retire(session, str(tmp_path))  # must not raise
+    retire(session, str(tmp_path), token_check_skipped=True)  # must not raise
 
     assert bytes(session._secret) == b"\x00" * len(session._secret)
 
@@ -165,7 +168,7 @@ def test_retire_accepts_bare_pubkey_string(tmp_path):
     session = generate()
     path = save(session, str(tmp_path), PASSPHRASE)
 
-    retire(session.pubkey, str(tmp_path))
+    retire(session.pubkey, str(tmp_path), token_check_skipped=True)
 
     assert not os.path.exists(path)
 
