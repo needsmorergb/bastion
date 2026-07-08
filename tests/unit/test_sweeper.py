@@ -191,6 +191,82 @@ async def test_dust_below_fee_is_noop(rpc_harness):
 
 
 @pytest.mark.asyncio
+async def test_balance_equals_fee_with_empty_ata_still_closes_and_sweeps(rpc_harness):
+    """WR-03 regression: balance == fee exactly must still close any empty
+    ATAs and land the session at 0 -- the fee is paid either way, and
+    closing costs the session nothing extra (ATA rent goes straight to the
+    vault via CloseAccount's own destination, never touching the session's
+    SOL balance)."""
+    client, router = rpc_harness
+    session = generate()
+    empty_ata = str(Keypair().pubkey())
+    fee = 5000
+    balance = fee  # exact boundary
+
+    responses = [
+        _balance_response(balance),
+        _token_accounts_response([_token_account(empty_ata, "0")]),
+        _blockhash_response(),
+        _fee_response(fee),
+        _send_response(),
+        _status_response(),
+    ]
+    captured_sends: list[dict] = []
+
+    def _dispatch(request: httpx.Request) -> httpx.Response:
+        body = _json.loads(request.content)
+        if body["method"] == "sendTransaction":
+            captured_sends.append(body)
+        return responses.pop(0)
+
+    router.post(RPC_TEST_BASE_URL).mock(side_effect=_dispatch)
+    rpc = RpcClient(client)
+    config = _base_config()
+
+    result = await sweep_session(rpc, config, session)
+
+    assert result["swept"] is True
+    assert result["closed_atas"] == 1
+    tx = _decode_signed_tx(captured_sends[0]["params"][0])
+    assert _transfer_lamports(tx) == 0
+    assert _close_account_atas(tx) == [empty_ata]
+
+
+@pytest.mark.asyncio
+async def test_balance_equals_fee_with_no_atas_is_still_noop(rpc_harness):
+    """balance == fee with nothing to close remains the D-07 no-op path --
+    there is no rent to recover and sending would just burn the fee for
+    nothing."""
+    client, router = rpc_harness
+    session = generate()
+    fee = 5000
+    balance = fee
+
+    responses = [
+        _balance_response(balance),
+        _token_accounts_response([]),
+        _blockhash_response(),
+        _fee_response(fee),
+    ]
+    captured_sends: list[dict] = []
+
+    def _dispatch(request: httpx.Request) -> httpx.Response:
+        body = _json.loads(request.content)
+        if body["method"] == "sendTransaction":
+            captured_sends.append(body)
+        return responses.pop(0)
+
+    router.post(RPC_TEST_BASE_URL).mock(side_effect=_dispatch)
+    rpc = RpcClient(client)
+    config = _base_config()
+
+    result = await sweep_session(rpc, config, session)
+
+    assert result["swept"] is False
+    assert captured_sends == []
+
+
+@pytest.mark.asyncio
 async def test_already_empty_session_is_noop(rpc_harness):
     client, router = rpc_harness
     session = generate()

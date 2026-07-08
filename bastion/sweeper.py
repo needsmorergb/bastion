@@ -140,9 +140,14 @@ async def sweep_session(rpc: RpcClient, config: Config, session: SessionKeypair)
     if fee is None:
         raise RpcError("blockhash expired during fee lookup; retry")
 
-    if balance <= fee:
-        # D-07: sub-fee dust (or an already-empty session) -> no-op, NOT
-        # an error. Nothing is built or sent.
+    if balance < fee or (balance == fee and not close_ixs):
+        # D-07: sub-fee dust (or an already-empty session with no ATA rent
+        # to recover) -> no-op, NOT an error. Nothing is built or sent.
+        # WR-03: the exact `balance == fee` edge is NOT a no-op when there
+        # are empty ATAs to close -- the fee is paid either way, closing
+        # costs the session nothing extra (rent goes straight to the vault
+        # via CloseAccount's own destination, not the session's balance),
+        # and skipping would strand recoverable rent unrecovered.
         return {"swept": False, "reason": "dust below fee reserve", "balance": balance}
 
     final_transfer_ix = transfer(
