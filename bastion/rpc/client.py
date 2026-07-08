@@ -202,6 +202,19 @@ class RpcClient:
             "getFeeForMessage", [message_b64, {"commitment": commitment}]
         )
 
+    async def get_signature_statuses(
+        self, signatures: list[str], *, search_history: bool = False
+    ) -> object:
+        """Return the raw ``result`` of ``getSignatureStatuses``.
+
+        Point-in-time only — no ``commitment`` param (statuses already carry
+        their own ``confirmationStatus`` per signature).
+        """
+        return await self.call(
+            "getSignatureStatuses",
+            [signatures, {"searchTransactionHistory": search_history}],
+        )
+
     async def send_raw(self, signed_tx_b64: str) -> object:
         """Issue ``sendTransaction`` carrying the base64-encoded signed blob.
 
