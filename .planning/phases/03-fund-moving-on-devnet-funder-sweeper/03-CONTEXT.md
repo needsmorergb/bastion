@@ -37,8 +37,8 @@ sweep; nonzero-token ATAs are left untouched).
   `N + tx_fee`; the session wallet receives a clean, round N. "The cap" the
   whole product is built around equals the session's usable balance, so
   `MAX_SESSION_CAP` is compared against N (the amount the session receives).
-- **D-02: `funder.py` funds a handed-in session pubkey; it does NOT mint the
-  keystore.** Keystore minting (`session.generate()` / `session.save()`) stays
+- **D-02: `funder.py` funds a handed-in session pubkey; it does NOT mint the keystore.**
+  Keystore minting (`session.generate()` / `session.save()`) stays
   in `session.py`. Rationale (trustworthiness): SEC-02 makes `funder.py` the
   only module that imports `vault.py` and holds the vault secret in scope — the
   vault-secret-privileged code path must stay as small and auditable as
