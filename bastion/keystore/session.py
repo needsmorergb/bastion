@@ -29,7 +29,7 @@ from solders.pubkey import Pubkey
 
 from bastion.keystore import crypto
 from bastion.keystore.cloudsync import check_keystore_dir
-from bastion.keystore.errors import KeystoreConfigError
+from bastion.keystore.errors import KeystoreConfigError, KeystoreRetireError
 
 
 @dataclass
@@ -182,7 +182,11 @@ def load(pubkey: str, keystore_dir: str, passphrase: str) -> SessionKeypair:
     return SessionKeypair(pubkey=str(restored.pubkey()), _secret=bytearray(bytes(restored)))
 
 
-def retire(session_or_pubkey: SessionKeypair | str, keystore_dir: str) -> None:
+def retire(
+    session_or_pubkey: SessionKeypair | str,
+    keystore_dir: str,
+    token_accounts: list[dict] | None = None,
+) -> None:
     """Remove the keystore file and best-effort zeroize the in-memory secret.
 
     Accepts either a ``SessionKeypair`` (its ``zeroize()`` is called) or a
@@ -191,6 +195,17 @@ def retire(session_or_pubkey: SessionKeypair | str, keystore_dir: str) -> None:
     file still exists). ``pubkey`` is validated (WR-01) before it is used to
     build a filesystem path, so a path-traversal or absolute-path value is
     rejected with ``KeystoreConfigError`` before any file is deleted.
+
+    ``token_accounts`` (D-10/SESS-07): an optional list of jsonParsed
+    ``getTokenAccountsByOwner``-shaped entries for the session's ATAs,
+    freshly read and passed in by the caller (this module stays synchronous
+    and never imports ``RpcClient``/``httpx``). When any account's
+    ``account.data.parsed.info.tokenAmount.amount`` parses to an int > 0,
+    retire refuses to hard-delete: it raises ``KeystoreRetireError`` and
+    returns WITHOUT deleting the keystore file or zeroizing the in-memory
+    secret (fail-loud, never a silent skip). When ``token_accounts`` is
+    ``None`` or empty (or all amounts are zero), the guard is a no-op and
+    retire proceeds exactly as before (backward compatible).
     """
     if isinstance(session_or_pubkey, SessionKeypair):
         pubkey = session_or_pubkey.pubkey
@@ -198,6 +213,19 @@ def retire(session_or_pubkey: SessionKeypair | str, keystore_dir: str) -> None:
         pubkey = session_or_pubkey
 
     pubkey = _safe_pubkey(pubkey)
+
+    if token_accounts:
+        nonzero = [
+            acc
+            for acc in token_accounts
+            if int(acc["account"]["data"]["parsed"]["info"]["tokenAmount"]["amount"]) > 0
+        ]
+        if nonzero:
+            raise KeystoreRetireError(
+                "Cannot retire session keystore: nonzero token balance "
+                f"remains in {len(nonzero)} account(s). Sweep tokens "
+                "manually before retiring."
+            )
 
     path = os.path.join(keystore_dir, f"{pubkey}.json")
     try:
