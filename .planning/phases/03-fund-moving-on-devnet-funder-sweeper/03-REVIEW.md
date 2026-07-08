@@ -1,372 +1,111 @@
 ---
 phase: 03-fund-moving-on-devnet-funder-sweeper
-reviewed: 2026-07-07T00:00:00Z
+reviewed: 2026-07-08T02:59:23Z
 depth: standard
-files_reviewed: 15
+files_reviewed: 8
 files_reviewed_list:
+  - bastion/land_check.py
   - bastion/funder.py
   - bastion/sweeper.py
-  - bastion/land_check.py
-  - bastion/fund_errors.py
-  - bastion/rpc/client.py
   - bastion/keystore/session.py
-  - bastion/keystore/errors.py
+  - tests/unit/test_land_check.py
   - tests/unit/test_funder.py
   - tests/unit/test_sweeper.py
-  - tests/unit/test_land_check.py
   - tests/unit/test_session_retire.py
-  - tests/unit/test_keystore_vault_isolation.py
-  - tests/e2e/conftest.py
-  - tests/e2e/test_devnet_fund_sweep.py
-  - pyproject.toml
 findings:
-  critical: 1
-  warning: 4
+  critical: 0
+  warning: 0
   info: 5
-  total: 10
+  total: 5
 status: issues_found
 ---
 
-# Phase 3: Code Review Report
+# Phase 3: Code Review Report (Iteration 2 — Fix Verification)
 
-**Reviewed:** 2026-07-07T00:00:00Z
+**Reviewed:** 2026-07-08T02:59:23Z
 **Depth:** standard
-**Files Reviewed:** 15
-**Status:** issues_found
+**Files Reviewed:** 8
+**Status:** issues_found (Info only — no Critical/Warning findings)
 
 ## Summary
 
-The isolation contract (SEC-02) is solid and well-enforced: `funder.py` is the
-only sanctioned importer of `bastion.keystore.vault` (verified structurally by
-the AST-based test, and confirmed by reading `sweeper.py`/`land_check.py`,
-neither of which import it or hold vault secret material). Refuse-before-send
-guards in `funder.py` (D-03 cap, D-04 balance) run before any RPC call that
-could sign/send, and the exact-fee arithmetic in both `funder.py` and
-`sweeper.py` is correct for the ordinary case (verified against the unit
-tests' byte-level decoding of the signed transaction).
+This is a targeted re-review verifying the four fixes applied since the iteration-1 review (CR-01 land_check double-spend guard, WR-01 sub-lamport reject, WR-03 sweeper balance==fee boundary, WR-02 retire fail-closed on `None` token_accounts, plus the WR-04 docstring hazard note). All four fixes were traced line-by-line against their stated intent, cross-checked against `RpcClient`'s error hierarchy (`bastion/rpc/client.py`, `bastion/rpc/errors.py`) to confirm every transport failure path actually raises a typed `RpcError` subclass (so `land_check`'s `except RpcError` genuinely covers all transport failures, not just a subset), and confirmed against the full test suite for these four modules: `python -m pytest tests/unit/test_land_check.py tests/unit/test_funder.py tests/unit/test_sweeper.py tests/unit/test_session_retire.py -q` → **30 passed**.
 
-The one **Critical** finding is in the shared `land_check.py` confirmation
-loop: neither the per-poll `getSignatureStatuses` call nor the defensive
-re-POST of the identical signed blob is guarded against raising. A `None`
-(unknown/ambiguous) status is exactly the case D-08/D-09 exist to handle —
-but if the re-POST itself fails (a routine, expected outcome once the
-transaction's blockhash has aged out of validity, which is entirely possible
-within `land_check`'s own 90s default budget), the resulting `RpcError`
-escapes uncaught, aborts the loop, and is reported to the caller as a failure
-for a transaction that may have already landed. That is precisely the
-condition under which a caller retrying `fund_session`/`sweep_session` would
-produce a duplicate vault debit — the architectural gap flagged in WR-04
-compounds directly with this bug.
+**Verification results for the four requested fixes — all CORRECT, no regressions found, no new double-spend/secret-leak/SEC-02 issues introduced:**
 
-The remaining findings are smaller boundary/robustness issues in the
-exact-zero sweep math, the D-10 retire guard's "unknown means proceed"
-default, and a few code-quality/consistency nits.
+1. **`land_check.py` (CR-01 double-spend guard):** Sound.
+   - Transport errors on the status poll (`except RpcError: statuses = None`, lines 63-69) never abort the loop — confirmed the loop falls through to `asyncio.sleep` and retries. `RpcTimeoutError`/`RpcRateLimitError` are both subclasses of `RpcError` (`bastion/rpc/errors.py:13,18`), and `RpcClient.call()` (`bastion/rpc/client.py:104-137`) wraps every `httpx` transport exception, JSON decode failure, and JSON-RPC error body into a typed `RpcError` — so this `except RpcError` genuinely catches every failure mode `RpcClient` can raise, not just a subset.
+   - Transport errors on the best-effort resend (`except RpcError: pass`, lines 93-96) are likewise swallowed and never abort the loop. Critically, this resend `try/except` is nested *inside* the `else` branch that only runs when `status is None` (unknown) — it can structurally never suppress a genuine on-chain failure, which is checked in the sibling `if status is not None` branch first and unconditionally.
+   - An authoritative on-chain `err` (`status.get("err") is not None`, lines 74-81) raises `RpcError` immediately regardless of how many prior transient transport failures occurred on earlier iterations — traced the interleaved-failure case explicitly (transient poll failure on iteration 1 → authoritative err on iteration 2) and confirmed it still raises correctly; this is also directly exercised by `test_explicit_err_raises_rpc_error` and `test_transient_status_poll_failure_does_not_abort_loop`.
+   - `search_history=True` is passed unconditionally on every `getSignatureStatuses` call (line 64) — not gated behind a retry count or any conditional — so a landed-but-expired-blockhash tx is detected via chain history search on every poll from the first iteration onward.
+   - No re-signing path exists anywhere in this module — `signed_b64` is the sole payload ever POSTed via `rpc.send_raw`; the module's import list (`asyncio`, `RpcClient`, `RpcError`, `RpcTimeoutError`) confirms there is no `Keypair`/message-rebuild capability present at all.
+   - Test coverage is adequate and passing: `test_resend_failure_from_expired_blockhash_does_not_abort_already_landed_tx` and `test_transient_status_poll_failure_does_not_abort_loop` both directly exercise the CR-01 scenario.
 
-## Critical Issues
+2. **`funder.py` (WR-01 sub-lamport reject):** Sound. `amount_lamports = round(amount_sol * LAMPORTS_PER_SOL)` followed by `if amount_lamports < 1: raise FunderInvalidAmountError(...)` (lines 99-108) runs strictly before `load_vault(config)` (line 110) and before any RPC call (`get_balance`, `get_latest_blockhash`, `get_fee_for_message`, `send_raw`). `test_sub_lamport_amount_raises_before_any_rpc_call` confirms `route.call_count == 0` after calling with `amount_sol=1e-10` — no zero-value transfer is ever built, signed, or sent on this path.
 
-### CR-01: `land_check`'s in-loop RPC calls are unguarded — a benign resend/poll failure aborts the loop and can look like a failed transaction that actually landed
+3. **`session.py::retire()` (WR-02 fail-closed on `None`):** Sound. `token_check_skipped` (lines 232-238) only relaxes the `token_accounts is None` ambiguity check; it has zero effect on the separate nonzero-balance check (lines 240-251), which unconditionally raises `KeystoreRetireError` on any nonzero entry in a genuinely-passed `token_accounts` list regardless of the `token_check_skipped` value. Explicitly traced: passing `token_check_skipped=True` together with an actual nonzero `token_accounts` list still hits the `if nonzero: raise` branch — there is no code path by which `token_check_skipped=True` can suppress a real nonzero-balance finding. All 10 tests in `test_session_retire.py` pass, including the `token_check_skipped=True` cases, and correctly assert file/secret state on both sides of the guard.
 
-**File:** `bastion/land_check.py:52-69`
+4. **`sweeper.py` (WR-03 balance==fee boundary):** Sound. `if balance < fee or (balance == fee and not close_ixs):` (line 152) no-ops only true sub-fee dust or an exact-equal balance with nothing to close; an exact-equal balance *with* empty ATAs falls through to build and send the real transaction with `final_transfer_ix` carrying `balance - fee == 0` lamports, closing ATAs and recovering rent via `CloseAccount`'s own destination (never routed through the session's SOL balance, so it costs nothing extra). Both boundary cases pass: `test_balance_equals_fee_with_empty_ata_still_closes_and_sweeps` (`swept=True`, `closed_atas=1`, transfer amount `== 0`) and `test_balance_equals_fee_with_no_atas_is_still_noop` (`swept=False`, no send). The exact-zero arithmetic for the ordinary `balance > fee` case is unchanged and still verified by `test_transfer_amount_is_balance_minus_fee`.
 
-**Issue:** The confirmation loop makes two RPC calls per iteration with no
-exception handling around either:
+SEC-02 isolation re-confirmed unbroken across all four files: `funder.py` still imports `bastion.keystore.vault` exclusively and is the only file among these that does; `sweeper.py` and `land_check.py` import neither `bastion.keystore.vault` nor hold/reference vault secret material anywhere in their current source.
 
-```python
-while elapsed < budget_s:
-    statuses = await rpc.get_signature_statuses([signature], search_history=True)  # line 54
-    status = statuses["value"][0]
-    if status is not None:
-        ...
-    else:
-        # Unknown, not failed (Pitfall 2). Re-POST the IDENTICAL blob —
-        await rpc.send_raw(signed_b64)   # line 67 — UNGUARDED
-    await asyncio.sleep(poll_interval_s)
-    elapsed += poll_interval_s
-```
-
-Both `RpcClient.get_signature_statuses` and `RpcClient.send_raw` route
-through `_request_with_backoff`, which raises `RpcError`/`RpcRateLimitError`/
-`RpcTimeoutError` on non-retryable failures or exhausted retry budgets
-(`bastion/rpc/client.py:104-137`). None of those exceptions are caught here.
-
-The re-POST branch (line 67) is reached specifically when the status is
-`None` — i.e. exactly the ambiguous case the module's own docstring says is
-"unknown, not failed." A resend of an already-landed transaction is a
-routine, *expected* outcome once its blockhash has fallen out of the
-network's recent-blockhash validity window (~60-90s on mainnet/devnet). Given
-the default `budget_s=90.0` / `poll_interval_s=1.5`, it is entirely possible
-for a poll to land after that window closes, in which case `sendTransaction`
-preflight will reject the resend (e.g. "Blockhash not found") and `call()`
-raises `RpcError` — which is not the same event as "the transaction failed
-on-chain." That RpcError propagates straight out of `land_check`, past
-`fund_session`/`sweep_session` (neither of which catches it either), to the
-caller — even though the original send may have already confirmed.
-
-**Failure scenario:** `fund_session` sends the vault→session transfer, it
-confirms on-chain, but the first `getSignatureStatuses` poll observes a
-`None` status (a well-documented ambiguity — see the module's own "Pitfall
-2" comment) close to the blockhash's expiry. The resend at line 67 fails with
-`RpcError` ("Blockhash not found"). `land_check` raises, `fund_session`
-raises, the CLI/caller sees an exception and reports "funding failed." If the
-caller (or the user) then retries `fund_session` for the same intent, a
-brand-new transaction is built, signed, and sent — the vault is now debited
-**twice** for what should have been a single fund operation. The same logic
-applies to `sweep_session`, though it is more self-healing there because a
-resweep of an already-swept session hits the D-07 dust no-op path.
-
-**Fix:** Treat both in-loop RPC calls as best-effort and never let a
-transport-level failure abort the authoritative polling loop before its own
-budget is exhausted:
-
-```python
-while elapsed < budget_s:
-    try:
-        statuses = await rpc.get_signature_statuses([signature], search_history=True)
-        status = statuses["value"][0]
-        if status is not None:
-            if status.get("err") is not None:
-                raise RpcError(f"transaction {signature} failed on-chain: {status['err']}")
-            if status.get("confirmationStatus") in ("confirmed", "finalized"):
-                return
-        else:
-            try:
-                await rpc.send_raw(signed_b64)
-            except RpcError:
-                pass  # best-effort resend; the next status poll is authoritative
-    except RpcError:
-        # Do not let a transient status-check failure (rate limit, transport
-        # blip) abort the loop before the budget is exhausted — only an
-        # explicit on-chain `err` should raise early.
-        pass
-    await asyncio.sleep(poll_interval_s)
-    elapsed += poll_interval_s
-```
-(Keep the explicit on-chain `err` raise as immediate/authoritative — only
-wrap the *transport*-level exceptions, not a confirmed on-chain failure.)
-
----
-
-## Warnings
-
-### WR-01: Sub-lamport `amount_sol` passes validation but silently produces a signed, sent, fee-costing zero-lamport transfer
-
-**File:** `bastion/funder.py:76-88`
-
-**Issue:**
-```python
-if not math.isfinite(amount_sol) or amount_sol <= 0:
-    raise FunderInvalidAmountError(...)
-...
-amount_lamports = round(amount_sol * LAMPORTS_PER_SOL)
-```
-`amount_sol` only needs to be a positive finite float to pass V5 — there is
-no check that the *rounded lamport amount* is at least 1. For any
-`0 < amount_sol < 5e-10` (half a lamport), `round(amount_sol * 1e9)` is `0`,
-so `amount_lamports == 0`. The function still proceeds: builds a real
-transfer instruction for 0 lamports, signs it with the vault key, sends it,
-and runs a full `land_check`. The vault pays a real network fee and the
-"funding" call succeeds while the session's balance is unchanged — directly
-contradicting the module's own contract ("the session receives a clean,
-round `amount_sol`", D-01).
-
-**Fix:**
-```python
-amount_lamports = round(amount_sol * LAMPORTS_PER_SOL)
-if amount_lamports < 1:
-    raise FunderInvalidAmountError(
-        f"amount_sol={amount_sol!r} rounds to {amount_lamports} lamports; "
-        "must be at least 1 lamport"
-    )
-```
-Move this check immediately after the lamport conversion, before
-`load_vault(config)` is called.
-
-### WR-02: `session.retire()`'s D-10 guard treats `token_accounts=None`/unknown as "safe to delete" (fail-open, not fail-closed)
-
-**File:** `bastion/keystore/session.py:199-229`
-
-**Issue:** The guard only inspects `token_accounts` when it is truthy:
-```python
-if token_accounts:
-    nonzero = [... for acc in token_accounts if int(...) > 0]
-    if nonzero:
-        raise KeystoreRetireError(...)
-```
-`None` and `[]` are documented as "backward compatible, no-op" — which is a
-reasonable design for genuinely pre-Phase-3 callers that never look up token
-balances at all. But it also means: if a *new* caller attempts to look up
-token accounts (as D-10/SESS-07 intends every retire call site to do) and
-that lookup fails (RPC error, timeout, rate limit) and the caller — by
-mistake or by a "fail open" habit — passes `None` through rather than
-propagating the failure, `retire()` cannot distinguish "verified empty" from
-"unknown/couldn't check," and will hard-delete the keystore either way. This
-is the exact ambiguity the domain brief calls out: the guard's whole purpose
-is to protect token funds from being orphaned by a deleted keystore, and its
-one blind spot is "I don't know" being silently treated the same as
-"confirmed zero."
-
-None of the files reviewed in this phase show the actual call site that
-supplies `token_accounts` to `retire()` (the CLI layer is out of scope here),
-so this cannot be confirmed as an active bug today — but the API shape
-invites the mistake.
-
-**Fix:** Make "unknown" a distinct, explicit state rather than overloading
-`None`/`[]`:
-```python
-def retire(
-    session_or_pubkey: SessionKeypair | str,
-    keystore_dir: str,
-    token_accounts: list[dict] | None = None,
-    *,
-    token_check_skipped: bool = False,
-) -> None:
-    ...
-    if token_accounts is None and not token_check_skipped:
-        raise KeystoreRetireError(
-            "Cannot retire: token balance was not checked. Pass "
-            "token_check_skipped=True only for pre-Phase-3 callers that "
-            "intentionally never look up token accounts."
-        )
-```
-At minimum, document at the call site (CLI) that `token_accounts=None` must
-only ever be passed when the caller *deliberately* opts out of the check —
-never as a stand-in for "the RPC call failed."
-
-### WR-03: Sweep no-op boundary (`balance <= fee`) at the exact `balance == fee` edge skips ATA closes the session could have fully afforded
-
-**File:** `bastion/sweeper.py:143-146`
-
-**Issue:**
-```python
-if balance <= fee:
-    # D-07: sub-fee dust (or an already-empty session) -> no-op, NOT an error.
-    return {"swept": False, "reason": "dust below fee reserve", "balance": balance}
-```
-When `balance == fee` exactly, the session has *precisely* enough SOL to pay
-the network fee for a transaction — including any `close_account_ix`
-instructions, whose ATA rent (`destination=vault_pk`) is credited directly to
-the vault and does not touch the session's SOL balance at all. In this exact
-case, sending the transaction would still land the session at 0 lamports
-(fee fully consumes `balance`) and would additionally recover ATA rent to
-the vault for free. Instead, the current code skips the whole transaction:
-any already-empty ATAs are left open (their rent unrecovered) and the
-session is left holding `fee` lamports instead of the documented exact-zero.
-This is a narrow edge case, but it directly contradicts both the "exact-zero"
-core property and the "no unrecovered rent" goal of the sweep for a case
-that costs the session nothing to execute.
-
-**Fix:** Change the boundary so the no-op only triggers when the balance is
-*strictly less than* the fee, and additionally treat "no empty ATAs and
-nothing to transfer" as its own no-op:
-```python
-if balance < fee or (balance == fee and not close_ixs):
-    return {"swept": False, "reason": "dust below fee reserve", "balance": balance}
-```
-Add a unit test asserting `balance == fee` with at least one empty ATA
-results in `swept: True`, the ATA closed, and the session at exactly 0.
-
-### WR-04: No idempotency guard against a caller retrying `fund_session`/`sweep_session` after an ambiguous failure
-
-**File:** `bastion/funder.py:49-122`, `bastion/sweeper.py:76-162`
-
-**Issue:** Both functions build, sign, and send exactly one transaction per
-invocation — correct in isolation — but neither has any way to detect "did a
-previous call for this same intent already land?" before doing so. Combined
-with CR-01 (where a transaction that actually landed can still surface as an
-exception to the caller), a caller that treats any exception from
-`fund_session` as "safe to retry" will build an entirely new transaction
-(fresh blockhash, same amount) and debit the vault a second time. `sweeper`
-is naturally more resilient here (a resweep of an already-swept session hits
-the D-07 dust/no-op path and does nothing), but `funder` has no equivalent
-self-correcting property — a duplicate `fund_session(..., 0.5)` call always
-sends another 0.5 SOL.
-
-**Fix:** This is an architectural gap best closed at the CLI/caller layer,
-not necessarily inside `funder.py` itself, but the module should at least
-document the hazard explicitly (its current docstring does not mention it).
-Options: (a) have the caller re-check the session's current balance before
-retrying and skip if it already reflects the intended top-up, or (b) persist
-a "funding attempt" record with a client-generated correlation id so retries
-can detect "already sent, just re-run land_check" versus "never sent."
-Fixing CR-01 removes the most likely trigger for this scenario but does not
-eliminate the class of risk on its own.
-
----
+The five Info items below are pre-existing, non-blocking robustness/consistency observations (none are regressions introduced by this iteration's fixes, none are fund-loss or double-spend risks, none are required to be fixed before shipping). Two carry over unresolved from the iteration-1 review; three were newly identified while tracing edge cases adjacent to the fixed code during this pass.
 
 ## Info
 
-### IN-01: `float('inf')` raises `FunderCapExceededError` rather than `FunderInvalidAmountError`
+### IN-01: `land_check` indexes `statuses["value"][0]` without defending against a malformed/short response shape
 
-**File:** `bastion/funder.py:69-79`
-**Issue:** The D-03 cap check (`amount_sol > config.max_session_cap_sol`) runs
-before the V5 finiteness check. `float('nan')` is unaffected (NaN comparisons
-are always `False`, so it falls through to V5 as expected), but
-`float('inf')` compares `True` and is classified as "cap exceeded" rather
-than "invalid amount" — a caller pattern-matching on exception type to decide
-whether to re-prompt for a smaller amount vs. reject the input outright would
-get the wrong branch for this one input.
-**Fix:** Run the `math.isfinite(amount_sol)` check before the cap comparison.
+**File:** `bastion/land_check.py:72`
+**Issue:** `status = statuses["value"][0]` assumes the JSON-RPC response always contains a `"value"` key holding a list with at least one entry (matching the single-signature input array per the Solana RPC spec). A malformed/non-conformant response with a missing `"value"` key or an empty list would raise an untyped `KeyError`/`IndexError` that escapes `land_check` entirely, bypassing the typed `RpcError`/`RpcTimeoutError` contract every other failure mode in this function honors. The outcome is still fail-*safe* (no fund movement occurs, no failure is silently swallowed), but it is a robustness/consistency gap and would surface to callers as an unexpected exception type.
+**Fix:**
+```python
+if statuses is not None:
+    values = statuses.get("value") or []
+    status = values[0] if values else None
+    if status is not None:
+        ...
+```
 
-### IN-02: SOL/lamport math uses native Python floats throughout
+### IN-02: `retire()`'s nonzero-balance check can raise an untyped `ValueError`/`KeyError` instead of `KeystoreRetireError` on malformed token amount data
 
-**File:** `bastion/funder.py:88`, `bastion/sweeper.py` (amount comparisons)
-**Issue:** `round(amount_sol * LAMPORTS_PER_SOL)` and float comparisons
-against `config.max_session_cap_sol` rely on `round()` to mask binary
-floating-point representation error. This works correctly for the values
-exercised in the test suite, but float is a known-risky type for
-money-denominated arithmetic; a future change (e.g. accepting amounts from
-untrusted string input with more decimal places, or chaining several
-float operations) could reintroduce an off-by-one-lamport class of bug that
-`round()` alone won't reliably catch.
-**Fix:** Consider accepting/working in integer lamports at the API boundary,
-or using `decimal.Decimal` for the SOL→lamport conversion, reserving float
-only for user-facing display.
+**File:** `bastion/keystore/session.py:244`
+**Issue:** `int(acc["account"]["data"]["parsed"]["info"]["tokenAmount"]["amount"])` raises a raw `ValueError`/`KeyError` (not `KeystoreRetireError`) on non-numeric or missing fields. The outcome is still fail-closed in practice (the exception propagates before `os.remove`/`zeroize()` are reached), so this is not a fund-safety issue, but it breaks this function's own documented contract ("raises `KeystoreRetireError`... fail-loud, never a silent skip") and the typed-error discipline `_safe_pubkey` already applies elsewhere in the same module.
+**Fix:**
+```python
+if token_accounts:
+    try:
+        nonzero = [
+            acc for acc in token_accounts
+            if int(acc["account"]["data"]["parsed"]["info"]["tokenAmount"]["amount"]) > 0
+        ]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise KeystoreRetireError(
+            "Cannot retire session keystore: malformed token_accounts entry."
+        ) from exc
+    if nonzero:
+        raise KeystoreRetireError(...)
+```
 
-### IN-03: `sweeper.py` reaches into `SessionKeypair._secret`, a "private" attribute, from outside its owning module
+### IN-03 (carried over from iteration 1, unresolved): `float('inf')` for `amount_sol` is classified as `FunderCapExceededError` rather than `FunderInvalidAmountError`
 
-**File:** `bastion/sweeper.py:157`
-**Issue:** `session_kp = Keypair.from_bytes(bytes(session._secret))` accesses
-a leading-underscore field directly from another module. `SessionKeypair`
-already exposes `zeroize()` as its one sanctioned mutator; there is no
-equivalent sanctioned accessor for "give me a signable `Keypair`."
-**Fix:** Add a small method on `SessionKeypair` (e.g. `to_keypair()`) that
-sweeper.py (and the e2e tests, which do the same thing) can call instead of
-reaching into the underscore-prefixed field.
+**File:** `bastion/funder.py:80-90`
+**Issue:** The D-03 cap check (`amount_sol > config.max_session_cap_sol`) still runs before the `math.isfinite(amount_sol)` check. `float('nan')` is unaffected (NaN comparisons are always `False`, so it correctly falls through to the finiteness check), but `float('inf')` compares `True` against any finite cap and is classified as "cap exceeded" rather than "invalid amount." A caller pattern-matching on exception type to decide whether to re-prompt for a smaller amount vs. reject the input outright would take the wrong branch for this one input. Not a fund-safety issue either way — both paths refuse-before-send — but the exception type is misleading.
+**Fix:** Run `math.isfinite(amount_sol)` before the cap comparison.
 
-### IN-04: `config.fee_reserve_lamports` is documented as a fee-lookup fallback but is never actually used as one
+### IN-04 (carried over from iteration 1, unresolved): `sweeper.py` reaches into `SessionKeypair._secret`, a leading-underscore attribute, from outside its owning module
 
-**File:** `bastion/funder.py` (module docstring), `bastion/sweeper.py:14-18, 87-91`
-**Issue:** Both modules' docstrings describe `config.fee_reserve_lamports` as
-"a fallback-only sanity floor," implying it is consulted when
-`getFeeForMessage` returns `null`. In the actual code, both modules simply
-raise `RpcError` immediately when `fee is None` (`funder.py:108-109`,
-`sweeper.py:140-141`) — `config.fee_reserve_lamports` is never read anywhere
-in either file. Failing closed here is the safer behavior and not itself a
-bug, but the docstring describes a fallback path that does not exist in the
-code, which will mislead the next person who reads it into thinking there is
-a graceful-degradation path when there isn't one.
-**Fix:** Either implement the described fallback (with care — using a stale
-sanity-floor fee instead of the real one changes the exact-fee guarantee) or
-update the docstrings to state plainly that a null fee is always fail-closed
-and `fee_reserve_lamports` is unused by this code path today.
+**File:** `bastion/sweeper.py:171`
+**Issue:** `session_kp = Keypair.from_bytes(bytes(session._secret))` still accesses a "private" field directly from another module. `SessionKeypair` exposes `zeroize()` as its one sanctioned mutator but has no equivalent sanctioned accessor for "give me a signable `Keypair`."
+**Fix:** Add a small method on `SessionKeypair` (e.g. `to_keypair()`) that `sweeper.py` can call instead of reaching into the underscore-prefixed field.
 
-### IN-05: `retire()`'s token-amount parsing raises a raw, untyped exception on malformed input
+### IN-05: SOL/lamport math uses native Python floats throughout, relying on `round()` to mask binary floating-point representation error
 
-**File:** `bastion/keystore/session.py:217-222`
-**Issue:** `int(acc["account"]["data"]["parsed"]["info"]["tokenAmount"]["amount"])`
-will raise a bare `KeyError` or `ValueError` if an entry is missing an
-expected key or has a non-numeric amount, rather than the module's own typed
-`Keystore*Error` hierarchy used everywhere else in this file (e.g.
-`_safe_pubkey` explicitly converts `ValueError`/`TypeError` into
-`KeystoreConfigError`). The failure is still safe (it aborts before
-`os.remove`), but it's an inconsistent error-handling pattern within the
-same module.
-**Fix:** Wrap the parsing loop and re-raise as `KeystoreRetireError` (or a
-new `KeystoreConfigError`) with a message that doesn't include the raw
-account payload.
+**File:** `bastion/funder.py:99` (`amount_lamports = round(amount_sol * LAMPORTS_PER_SOL)`)
+**Issue:** This works correctly for the values exercised by the test suite and the new WR-01 guard closes the most direct exploit of this weakness (sub-lamport dust), but float remains a known-risky representation for money-denominated arithmetic. A future change (e.g. accepting amounts from untrusted string input with more decimal places, or chaining several float operations before this point) could reintroduce an off-by-one-lamport class of bug that `round()` alone won't reliably catch.
+**Fix:** Consider accepting/working in integer lamports at the API boundary, or using `decimal.Decimal` for the SOL→lamport conversion, reserving float only for user-facing display.
 
 ---
 
-_Reviewed: 2026-07-07T00:00:00Z_
+_Reviewed: 2026-07-08T02:59:23Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
