@@ -103,10 +103,20 @@ Plans:
 
 Plans:
 
-- [ ] 03-01: funder.py — capped vault→session transfer, MAX_SESSION_CAP guard, build→sign→record→send→land-check idempotency
-- [ ] 03-02: sweeper.py — session→vault, getFeeForMessage reserve, close empty ATAs first, exact-zero close, already-empty no-op
-- [ ] 03-03: retire semantics — don't hard-delete on nonzero token balance; manual end-session flow (sweep→retire)
-- [ ] 03-04: devnet end-to-end tests — fund→sweep round trip, injected-timeout no-double-spend, SOL+ATA to exact zero
+**Wave 1**
+
+- [ ] 03-01-PLAN.md — funder.py: capped vault→session exact-N transfer (D-01), MAX_SESSION_CAP refuse-before-send (D-03), insufficient-balance guard (D-04); shared land_check loop (D-08/D-09) + `get_signature_statuses`; funder is the sole sanctioned vault.py importer (D-02, SEC-02)
+- [ ] 03-03-PLAN.md — retire semantics: `KeystoreRetireError` + D-10 nonzero-token-balance guard on `session.retire()` (SESS-07); independent (session.py/errors.py only)
+
+**Wave 2** *(blocked on 03-01)*
+
+- [ ] 03-02-PLAN.md — sweeper.py: session→vault exact-zero via getFeeForMessage (D-05), one atomic tx closing empty ATAs + SOL transfer (D-06), sub-fee dust no-op (D-07), `get_token_accounts_by_owner`; never imports vault.py, signs session-key-only (SEC-02)
+
+**Wave 3** *(blocked on 03-01, 03-02)*
+
+- [ ] 03-04-PLAN.md — devnet e2e: fund→sweep round trip exact delta, exact-zero-with-ATA close, injected-timeout no-double-spend (D-08); opt-in `devnet` marker, airdrop-429 skip-not-fail
+
+**Note**: Roadmap proposed a flat 4-plan split with 03-01/03-02/03-03 all in Wave 1. Deviated on waves only (not plan count): funder and sweeper both extend `bastion/rpc/client.py` and share one land-check loop, so they cannot run in the same wave without a `files_modified` conflict. The shared land-check lives in a new `bastion/land_check.py` (owned by 03-01) rather than inside funder.py, so the sweeper imports it without coupling to the vault-privileged funder module. Sweeper (03-02) therefore moves to Wave 2; retire (03-03) is genuinely file-independent and stays in Wave 1 alongside the funder.
 
 **UI hint**: no
 
