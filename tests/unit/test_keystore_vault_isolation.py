@@ -21,8 +21,8 @@ from bastion.keystore.errors import KeystoreConfigError
 from bastion.keystore.vault import load_vault
 
 FORBIDDEN_MODULE = "bastion.keystore.vault"
-# Phase 3 appends "bastion/funder.py" to this allowlist when the funder is built.
-ALLOWED_IMPORTERS = {"bastion/keystore/vault.py"}
+# Phase 3: funder.py is the one sanctioned addition (SEC-02, D-02).
+ALLOWED_IMPORTERS = {"bastion/keystore/vault.py", "bastion/funder.py"}
 
 
 def _base_config(**overrides: object) -> Config:
