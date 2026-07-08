@@ -90,7 +90,9 @@ async def sweep_session(rpc: RpcClient, config: Config, session: SessionKeypair)
     (it is a fallback-only sanity floor for callers, not this function's
     primary fee source).
 
-    When ``balance <= fee`` (sub-fee dust, or an already-empty session),
+    When ``balance < fee``, or ``balance == fee`` with no empty ATAs to
+    close (WR-03: the exact-equal boundary still sweeps when there is
+    rent to recover, since closing costs the session nothing extra),
     returns ``{"swept": False, "reason": ..., "balance": balance}`` and
     raises nothing (D-07) -- no transaction is built or sent.
 
@@ -98,6 +100,13 @@ async def sweep_session(rpc: RpcClient, config: Config, session: SessionKeypair)
     ONLY -- this module never imports or references the vault secret
     (SEC-02). Returns ``{"swept": True, "signature": sig, "closed_atas":
     N}`` once ``land_check`` confirms the sweep at ``confirmed`` (D-09).
+
+    WR-04 — retry hazard: unlike ``funder.fund_session``, a resweep of an
+    already-swept session is naturally self-correcting (it lands on the
+    D-07 dust no-op path and sends nothing) -- but this function still has
+    no built-in idempotency tracking for the send itself, so treat any
+    exception here the same way: prefer re-checking on-chain state over
+    blind retries.
     """
     session_pk = Pubkey.from_string(session.pubkey)
     vault_pk = Pubkey.from_string(config.vault_pubkey)

@@ -64,7 +64,18 @@ async def fund_session(
         FunderInsufficientBalanceError: the vault balance cannot cover
             ``amount_sol`` + the exact network fee (D-04) — sends nothing.
         RpcError: the latest blockhash expired before the fee lookup
-            resolved.
+            resolved, or ``land_check`` exhausted its confirmation budget
+            without proof the send failed on-chain (see WR-04 below).
+
+    WR-04 — retry hazard: this function has no built-in idempotency guard.
+    Each call builds, signs, and sends exactly one new transfer; there is
+    no way for it to detect "did a previous call for this same intent
+    already land?" A caller that blindly retries after ANY exception here
+    (including one raised after the underlying transaction already landed
+    on-chain) will debit the vault a second time. Callers MUST re-check the
+    session's current balance before retrying and skip the retry if it
+    already reflects the intended top-up, or track a correlation id for the
+    attempt themselves — this function does not do it for you.
     """
     # D-03: cap guard, before touching vault.py or the network at all.
     if amount_sol > config.max_session_cap_sol:
